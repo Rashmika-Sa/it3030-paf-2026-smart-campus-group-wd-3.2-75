@@ -1,0 +1,67 @@
+name: Full Stack CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  
+  # 1 BACKEND (Spring Boot)
+  
+  backend:
+    name: Build Backend
+    runs-on: ubuntu-latest
+    
+    # Tells GitHub that all backend commands should run inside the backend folder
+    defaults:
+      run:
+        working-directory: ./backend 
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Make Maven Wrapper Executable
+        run: chmod +x mvnw
+
+      - name: Build Backend (Compile & Package)
+    
+        run: ./mvnw clean package -DskipTests
+
+ 
+  # 2 FRONTEND (Node.js / React / etc.)
+  frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check if Frontend exists
+        run: |
+          if [ -f "package.json" ]; then
+            echo "Frontend found! Installing dependencies and building..."
+            npm install
+            npm run build
+          else
+            echo "No package.json found yet. Skipping frontend build until tomorrow!"
+          fi
