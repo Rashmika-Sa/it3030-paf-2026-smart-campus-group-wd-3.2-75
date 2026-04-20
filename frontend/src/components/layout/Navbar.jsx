@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, GraduationCap, Lock, KeyRound } from 'lucide-react';
+import { Menu, X, Lock, KeyRound } from 'lucide-react';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -25,9 +25,9 @@ export default function Navbar() {
           
           {/* Left: Logo */}
           <div className="flex items-center gap-2 cursor-pointer">
-            <GraduationCap className="h-8 w-8 text-sliit-gold" />
+            <img src="/sliit-logo.jpg" alt="SLIIT logo" className="h-9 w-9 rounded-full object-cover bg-white p-1 shadow-sm" />
             <span className="text-xl md:text-2xl font-bold tracking-tight text-white">
-              SLIIT Smart Campus<span className="text-sliit-gold">.</span>
+              SLIIT-HUB<span className="text-sliit-gold">.</span>
             </span>
           </div>
 
