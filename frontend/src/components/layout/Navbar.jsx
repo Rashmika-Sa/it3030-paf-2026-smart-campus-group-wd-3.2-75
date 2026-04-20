@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, X, Lock, KeyRound } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -51,13 +52,13 @@ export default function Navbar() {
                 <KeyRound className="h-3 w-3" />
                 Forgot Password?
               </a>
-              <button className="text-white font-bold hover:text-sliit-gold transition-colors px-2">
+              
+              <Link to="/auth" className="text-white font-bold hover:text-sliit-gold transition-colors px-2">
                 Login
-              </button>
-              {/* Primary button using SLIIT Gold */}
-              <button className="bg-sliit-gold text-[#222222] hover:bg-yellow-500 px-6 py-2 rounded-full font-bold transition-all duration-300 shadow-md hover:-translate-y-0.5">
+              </Link>
+              <Link to="/auth" state={{ isRegister: true }} className="bg-sliit-gold text-[#222222] hover:bg-yellow-500 px-6 py-2 rounded-full font-bold transition-all duration-300 shadow-md hover:-translate-y-0.5">
                 Register
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -92,12 +93,14 @@ export default function Navbar() {
               <a href="#forgot-password" className="text-sm font-medium text-gray-400 hover:text-sliit-gold transition-colors text-center underline mb-2">
                 Forgotten your password?
               </a>
-              <button className="w-full border border-gray-600 text-white hover:bg-gray-800 px-6 py-3 rounded-xl font-bold transition-all">
+              
+              {/* UPDATED: React Router Links for Mobile View */}
+              <Link to="/auth" className="w-full border border-gray-600 text-white hover:bg-gray-800 px-6 py-3 rounded-xl font-bold transition-all text-center block">
                 Login
-              </button>
-              <button className="w-full bg-sliit-gold text-[#222222] hover:bg-yellow-500 px-6 py-3 rounded-xl font-bold transition-all shadow-md">
+              </Link>
+              <Link to="/auth" state={{ isRegister: true }}className="w-full bg-sliit-gold text-[#222222] hover:bg-yellow-500 px-6 py-3 rounded-xl font-bold transition-all shadow-md text-center block">
                 Register
-              </button>
+              </Link>
             </div>
           </div>
         </div>

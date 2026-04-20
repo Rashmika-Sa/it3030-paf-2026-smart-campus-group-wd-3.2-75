@@ -1,11 +1,17 @@
-import LandingPage from './pages/LandingPage';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LandingPage from './pages/LandingPage'; 
+import Auth from './components/auth/Auth';
 
-function App() {
+export default function App() {
   return (
-    <div className="min-h-screen selection:bg-sliit-gold selection:text-sliit-deep">
-      <LandingPage />
-    </div>
+    <Router>
+      <Routes>
+        
+        <Route path="/" element={<LandingPage />} />
+        
+        <Route path="/auth" element={<Auth />} />
+      </Routes>
+    </Router>
   );
 }
-
-export default App;
