@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import LandingPage from './pages/LandingPage'; 
 import AboutPage from './pages/AboutPage';
+import DashboardPage from './pages/DashboardPage';
 import Auth from './components/auth/Auth';
 
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/auth" element={<Auth />} />
         </Routes>
       </Router>

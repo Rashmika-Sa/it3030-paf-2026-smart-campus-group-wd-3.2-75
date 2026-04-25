@@ -1,22 +1,30 @@
 import React, { useState } from 'react';
 import { Menu, X, Lock, KeyRound, Home } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const isLoggedIn = Boolean(localStorage.getItem('token'));
 
   const handleRestrictedClick = (e) => {
     e.preventDefault();
     alert("Please Login or Register to access the Student Portal.");
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsMenuOpen(false);
+    navigate('/auth');
+  };
+
   const navLinks = [
     { name: 'About', restricted: false, href: '/about', route: true },
-    { name: 'Bookings', restricted: true, href: '#bookings' },
-    { name: 'Resources', restricted: true, href: '#resources' },
-    { name: 'Tickets', restricted: true, href: '#tickets' },
-    { name: 'Notifications', restricted: true, href: '#notifications' },
-    { name: 'Facilities', restricted: true, href: '#facilities' },
+    { name: 'Bookings', restricted: true, href: '/dashboard#bookings', route: true },
+    { name: 'Resources', restricted: true, href: '/dashboard#resources', route: true },
+    { name: 'Tickets', restricted: true, href: '/dashboard#tickets', route: true },
+    { name: 'Notifications', restricted: true, href: '/dashboard#notifications', route: true },
+    { name: 'Facilities', restricted: true, href: '/dashboard#facilities', route: true },
   ];
 
   return (
@@ -50,19 +58,20 @@ export default function Navbar() {
                 <Link
                   key={link.name}
                   to={link.href}
+                  onClick={link.restricted && !isLoggedIn ? handleRestrictedClick : undefined}
                   className="flex items-center gap-1 text-gray-300 hover:text-sliit-gold transition-colors font-medium text-sm"
                 >
-                  {link.restricted && <Lock className="h-3 w-3 text-gray-500" />}
+                  {link.restricted && !isLoggedIn && <Lock className="h-3 w-3 text-gray-500" />}
                   {link.name}
                 </Link>
               ) : (
                 <a 
                   key={link.name}
                   href={link.href}
-                  onClick={link.restricted ? handleRestrictedClick : undefined}
+                  onClick={link.restricted && !isLoggedIn ? handleRestrictedClick : undefined}
                   className="flex items-center gap-1 text-gray-300 hover:text-sliit-gold transition-colors font-medium text-sm"
                 >
-                  {link.restricted && <Lock className="h-3 w-3 text-gray-500" />}
+                  {link.restricted && !isLoggedIn && <Lock className="h-3 w-3 text-gray-500" />}
                   {link.name}
                 </a>
               )
@@ -74,13 +83,24 @@ export default function Navbar() {
                 <KeyRound className="h-3 w-3" />
                 Forgot Password?
               </a>
-              
-              <Link to="/auth" className="text-white font-bold hover:text-sliit-gold transition-colors px-2">
-                Login
-              </Link>
-              <Link to="/auth" state={{ isRegister: true }} className="bg-sliit-gold text-[#222222] hover:bg-yellow-500 px-6 py-2 rounded-full font-bold transition-all duration-300 shadow-md hover:-translate-y-0.5">
-                Register
-              </Link>
+
+              {isLoggedIn ? (
+                <button
+                  onClick={handleLogout}
+                  className="bg-sliit-gold text-[#222222] hover:bg-yellow-500 px-6 py-2 rounded-full font-bold transition-all duration-300 shadow-md hover:-translate-y-0.5"
+                >
+                  Logout
+                </button>
+              ) : (
+                <>
+                  <Link to="/auth" className="text-white font-bold hover:text-sliit-gold transition-colors px-2">
+                    Login
+                  </Link>
+                  <Link to="/auth" state={{ isRegister: true }} className="bg-sliit-gold text-[#222222] hover:bg-yellow-500 px-6 py-2 rounded-full font-bold transition-all duration-300 shadow-md hover:-translate-y-0.5">
+                    Register
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 
@@ -110,19 +130,26 @@ export default function Navbar() {
                 <Link
                   key={link.name}
                   to={link.href}
+                  onClick={(e) => {
+                    if (link.restricted && !isLoggedIn) {
+                      handleRestrictedClick(e);
+                    } else {
+                      setIsMenuOpen(false);
+                    }
+                  }}
                   className="flex items-center gap-2 px-3 py-3 text-base font-medium text-gray-300 hover:bg-[#333333] hover:text-sliit-gold rounded-lg transition-colors"
                 >
-                  {link.restricted && <Lock className="h-4 w-4 text-gray-500" />}
+                  {link.restricted && !isLoggedIn && <Lock className="h-4 w-4 text-gray-500" />}
                   {link.name}
                 </Link>
               ) : (
                 <a 
                   key={link.name}
                   href={link.href}
-                  onClick={link.restricted ? handleRestrictedClick : undefined}
+                  onClick={link.restricted && !isLoggedIn ? handleRestrictedClick : undefined}
                   className="flex items-center gap-2 px-3 py-3 text-base font-medium text-gray-300 hover:bg-[#333333] hover:text-sliit-gold rounded-lg transition-colors"
                 >
-                  {link.restricted && <Lock className="h-4 w-4 text-gray-500" />}
+                  {link.restricted && !isLoggedIn && <Lock className="h-4 w-4 text-gray-500" />}
                   {link.name}
                 </a>
               )
@@ -133,12 +160,23 @@ export default function Navbar() {
               </a>
               
               {/* UPDATED: React Router Links for Mobile View */}
-              <Link to="/auth" className="w-full border border-gray-600 text-white hover:bg-gray-800 px-6 py-3 rounded-xl font-bold transition-all text-center block">
-                Login
-              </Link>
-              <Link to="/auth" state={{ isRegister: true }}className="w-full bg-sliit-gold text-[#222222] hover:bg-yellow-500 px-6 py-3 rounded-xl font-bold transition-all shadow-md text-center block">
-                Register
-              </Link>
+              {isLoggedIn ? (
+                <button
+                  onClick={handleLogout}
+                  className="w-full bg-sliit-gold text-[#222222] hover:bg-yellow-500 px-6 py-3 rounded-xl font-bold transition-all shadow-md text-center block"
+                >
+                  Logout
+                </button>
+              ) : (
+                <>
+                  <Link to="/auth" className="w-full border border-gray-600 text-white hover:bg-gray-800 px-6 py-3 rounded-xl font-bold transition-all text-center block" onClick={() => setIsMenuOpen(false)}>
+                    Login
+                  </Link>
+                  <Link to="/auth" state={{ isRegister: true }} className="w-full bg-sliit-gold text-[#222222] hover:bg-yellow-500 px-6 py-3 rounded-xl font-bold transition-all shadow-md text-center block" onClick={() => setIsMenuOpen(false)}>
+                    Register
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

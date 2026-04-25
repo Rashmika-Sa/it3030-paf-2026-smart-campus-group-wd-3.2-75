@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
@@ -206,6 +207,30 @@ public class AuthService {
 
         String token = createToken(user.getEmail());
         return new AuthResponse(token, "Google login successful");
+    }
+
+    public Map<String, Object> getCurrentUserByToken(String token) {
+        String normalizedToken = normalizeText(token);
+        if (normalizedToken == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authorization token is required");
+        }
+
+        String email = activeTokens.get(normalizedToken);
+        if (email == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired token");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", user.getId());
+        response.put("name", user.getName());
+        response.put("email", user.getEmail());
+        response.put("sliitId", user.getSliitId());
+        response.put("provider", user.getProvider());
+        response.put("role", user.getRole() != null ? user.getRole().name() : null);
+        return response;
     }
 
     private void issueOtp(String email, OtpPurpose purpose) {

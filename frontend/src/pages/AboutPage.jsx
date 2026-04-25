@@ -61,11 +61,6 @@ export default function AboutPage() {
 
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-24">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 bg-sliit-gold/10 border border-sliit-gold/30 px-4 py-2 rounded-full text-sm font-semibold text-sliit-gold mb-6">
-                <GraduationCap className="h-4 w-4" />
-                About SLIIT-HUB
-              </div>
-
               <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-6">
                 Building a smarter, simpler, and more connected campus experience.
               </h1>

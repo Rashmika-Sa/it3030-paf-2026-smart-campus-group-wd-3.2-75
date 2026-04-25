@@ -1,37 +1,37 @@
 package com.wd32._5.smart_campus.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "users")
+@Document(collection = "users") 
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id 
+    private String id; 
 
-    @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Indexed(unique = true) 
     private String email;
 
-    @Column(unique = true)
+    @Indexed(unique = true) 
     private String sliitId;
 
     private String password;
     private String provider;
     private String providerId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    
     private Role role = Role.USER;
 
-    public Long getId() {
+    
+
+    public String getId() { 
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) { 
         this.id = id;
     }
 
