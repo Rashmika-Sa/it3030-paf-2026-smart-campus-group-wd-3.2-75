@@ -325,16 +325,30 @@ function ResourcesSection({ showToast }) {
 
   return (
     <div className="space-y-5">
-      {/* Mini stats */}
+      {/* Section header */}
+      <div className="flex items-center gap-3 pb-1">
+        <div className="w-10 h-10 rounded-xl bg-sliit-gold/10 flex items-center justify-center shrink-0">
+          <Package className="w-5 h-5 text-yellow-600" />
+        </div>
+        <div>
+          <h2 className="font-bold text-[#222222] text-base leading-tight">Resources Management</h2>
+          <p className="text-xs text-gray-400">Manage campus facilities and assets catalogue</p>
+        </div>
+      </div>
+
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Total', value: stats.total, color: 'text-[#222222]', bg: 'bg-gray-100' },
-          { label: 'Active', value: stats.active, color: 'text-emerald-700', bg: 'bg-emerald-50' },
-          { label: 'Out of Service', value: stats.oos, color: 'text-red-700', bg: 'bg-red-50' },
+          { label: 'Total Resources', value: stats.total, color: 'text-[#222222]', bg: 'bg-white border border-gray-200', iconBg: 'bg-gray-100', icon: <Package className="w-4 h-4 text-gray-500" /> },
+          { label: 'Active', value: stats.active, color: 'text-emerald-700', bg: 'bg-white border border-emerald-100', iconBg: 'bg-emerald-50', icon: <CheckCircle className="w-4 h-4 text-emerald-600" /> },
+          { label: 'Out of Service', value: stats.oos, color: 'text-red-700', bg: 'bg-white border border-red-100', iconBg: 'bg-red-50', icon: <AlertCircle className="w-4 h-4 text-red-500" /> },
         ].map((s) => (
-          <div key={s.label} className={`${s.bg} rounded-xl px-4 py-3 flex items-center justify-between`}>
-            <span className="text-xs font-semibold text-gray-500">{s.label}</span>
-            <span className={`text-2xl font-extrabold ${s.color}`}>{s.value}</span>
+          <div key={s.label} className={`${s.bg} rounded-xl px-4 py-3.5 flex items-center gap-3 shadow-sm`}>
+            <div className={`w-9 h-9 rounded-lg ${s.iconBg} flex items-center justify-center shrink-0`}>{s.icon}</div>
+            <div>
+              <p className={`text-xl font-extrabold leading-tight ${s.color}`}>{s.value}</p>
+              <p className="text-xs text-gray-500">{s.label}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -379,9 +393,24 @@ function ResourcesSection({ showToast }) {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan={7} className="py-12 text-center text-gray-400">Loading resources…</td></tr>
+                <tr>
+                  <td colSpan={7} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 border-3 border-sliit-gold border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm text-gray-400">Loading resources…</span>
+                    </div>
+                  </td>
+                </tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="py-12 text-center text-gray-400">No resources match your filters.</td></tr>
+                <tr>
+                  <td colSpan={7} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <Package className="w-10 h-10 text-gray-200" />
+                      <p className="text-sm font-semibold text-gray-400">No resources found</p>
+                      <p className="text-xs text-gray-300">Try a different search or add a new resource.</p>
+                    </div>
+                  </td>
+                </tr>
               ) : filtered.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                   <td className="py-3 px-4 font-semibold text-[#222222] max-w-[160px] truncate">{r.name}</td>

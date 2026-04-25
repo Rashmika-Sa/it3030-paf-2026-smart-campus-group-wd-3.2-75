@@ -45,37 +45,41 @@ const typeBg = {
   EQUIPMENT: 'bg-orange-100 text-orange-700',
 };
 
+const typeGradient = {
+  LECTURE_HALL: 'from-blue-500 to-blue-700',
+  LAB: 'from-purple-500 to-purple-700',
+  MEETING_ROOM: 'from-emerald-500 to-emerald-700',
+  EQUIPMENT: 'from-orange-500 to-orange-700',
+};
+
 function ResourceCard({ resource, onBook }) {
+  const isActive = resource.status === 'ACTIVE';
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
-      {/* Image */}
-      <div className="h-44 bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden">
-        {resource.imageUrl ? (
-          <img src={resource.imageUrl} alt={resource.name} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300">
-            {typeIcon[resource.type] && React.cloneElement(typeIcon[resource.type], { className: 'w-16 h-16' })}
-          </div>
-        )}
-        {/* Status badge */}
-        <span className={`absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm ${resource.status === 'ACTIVE' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
-          {resource.status === 'ACTIVE' ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-          {resource.status === 'ACTIVE' ? 'Available' : 'Out of Service'}
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col group">
+      {/* Coloured header */}
+      <div className={`h-36 bg-gradient-to-br ${typeGradient[resource.type] || 'from-gray-400 to-gray-600'} relative overflow-hidden flex items-center justify-center`}>
+        <div className="absolute top-[-12px] right-[-12px] w-24 h-24 rounded-full bg-white/10" />
+        <div className="absolute bottom-[-16px] left-[-8px] w-20 h-20 rounded-full bg-white/10" />
+        <div className="text-white/80 relative z-10">
+          {typeIcon[resource.type] && React.cloneElement(typeIcon[resource.type], { className: 'w-14 h-14' })}
+        </div>
+        <span className={`absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold shadow-md
+          ${isActive ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
+          {isActive ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+          {isActive ? 'Available' : 'Out of Service'}
         </span>
       </div>
 
       {/* Body */}
       <div className="p-5 flex flex-col flex-1">
-        {/* Type badge + name */}
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold mb-2 self-start ${typeBg[resource.type] || 'bg-gray-100 text-gray-700'}`}>
           {typeIcon[resource.type]}{typeLabel[resource.type] || resource.type}
         </span>
-        <h3 className="font-bold text-[#222222] text-base mb-1">{resource.name}</h3>
+        <h3 className="font-bold text-[#222222] text-base mb-1 leading-snug">{resource.name}</h3>
         {resource.description && (
           <p className="text-gray-500 text-sm mb-3 line-clamp-2">{resource.description}</p>
         )}
 
-        {/* Meta */}
         <div className="space-y-1.5 mb-4 mt-auto">
           {resource.location && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -86,7 +90,7 @@ function ResourceCard({ resource, onBook }) {
           {resource.capacity > 0 && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Users className="w-4 h-4 text-gray-400 shrink-0" />
-              Capacity: {resource.capacity}
+              Capacity: <span className="font-semibold text-[#222222]">{resource.capacity}</span>
             </div>
           )}
           {resource.availabilityWindows?.length > 0 && (
@@ -97,14 +101,16 @@ function ResourceCard({ resource, onBook }) {
           )}
         </div>
 
-        {/* Book Now */}
         <button
           onClick={() => onBook(resource)}
-          disabled={resource.status !== 'ACTIVE'}
-          className="w-full py-2.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-sliit-gold hover:bg-yellow-500 text-[#222222] flex items-center justify-center gap-2"
+          disabled={!isActive}
+          className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2
+            ${isActive
+              ? 'bg-sliit-gold hover:bg-yellow-500 text-[#222222] group-hover:shadow-md'
+              : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
         >
           <CalendarCheck className="w-4 h-4" />
-          {resource.status === 'ACTIVE' ? 'Book Now' : 'Unavailable'}
+          {isActive ? 'Book Now' : 'Unavailable'}
         </button>
       </div>
     </div>
@@ -236,10 +242,15 @@ export default function DashboardPage() {
       <main className="pt-20 min-h-screen bg-gray-50">
 
         {/* Hero strip */}
-        <div className="bg-[#222222] text-white py-10 px-4">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-3xl font-extrabold mb-1">Campus Resources</h1>
-            <p className="text-gray-400 text-sm">Browse and book lecture halls, labs, meeting rooms, and equipment.</p>
+        <div className="bg-gradient-to-r from-[#1a1a1a] to-[#2a2a2a] text-white py-12 px-4 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-72 h-72 bg-sliit-gold/5 rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+          <div className="absolute bottom-0 left-32 w-44 h-44 bg-sliit-gold/5 rounded-full translate-y-1/2 pointer-events-none" />
+          <div className="max-w-7xl mx-auto relative z-10">
+            <span className="inline-block px-3 py-1 bg-sliit-gold/20 text-sliit-gold text-xs font-bold rounded-full uppercase tracking-wider mb-3">
+              Facilities &amp; Assets
+            </span>
+            <h1 className="text-3xl font-extrabold mb-2">Campus Resources</h1>
+            <p className="text-gray-400 text-sm max-w-lg">Browse and book lecture halls, labs, meeting rooms, and equipment across the SLIIT campus.</p>
           </div>
         </div>
 
@@ -287,24 +298,38 @@ export default function DashboardPage() {
           </div>
 
           {/* Results summary */}
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-gray-500">
-              {loading ? 'Loading...' : `${displayed.length} resource${displayed.length !== 1 ? 's' : ''} found`}
-            </p>
-          </div>
+          {!loading && (
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-sm text-gray-500 font-medium">
+                Showing <span className="text-[#222222] font-bold">{displayed.length}</span> resource{displayed.length !== 1 ? 's' : ''}
+                {hasFilters && <span className="text-sliit-gold"> (filtered)</span>}
+              </p>
+              {hasFilters && (
+                <button onClick={clearFilters} className="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1">
+                  <X className="w-3 h-3" /> Clear all filters
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Cards grid */}
           {loading ? (
-            <div className="flex items-center justify-center py-24">
-              <div className="w-10 h-10 border-4 border-sliit-gold border-t-transparent rounded-full animate-spin" />
+            <div className="flex flex-col items-center justify-center py-28 gap-4">
+              <div className="w-12 h-12 border-4 border-sliit-gold border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-gray-400 font-medium">Loading resources…</p>
             </div>
           ) : displayed.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4 text-gray-300">
-                <Building2 className="w-8 h-8" />
+            <div className="text-center py-24">
+              <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center mx-auto mb-5">
+                <Building2 className="w-10 h-10 text-gray-300" />
               </div>
-              <h3 className="font-bold text-[#222222] mb-1">No resources found</h3>
-              <p className="text-gray-500 text-sm">Try adjusting your filters.</p>
+              <h3 className="font-bold text-[#222222] text-lg mb-1">No resources found</h3>
+              <p className="text-gray-500 text-sm mb-4">Try adjusting your search or filters.</p>
+              {hasFilters && (
+                <button onClick={clearFilters} className="px-5 py-2 bg-sliit-gold hover:bg-yellow-500 text-[#222222] rounded-xl font-bold text-sm transition-colors">
+                  Clear Filters
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
