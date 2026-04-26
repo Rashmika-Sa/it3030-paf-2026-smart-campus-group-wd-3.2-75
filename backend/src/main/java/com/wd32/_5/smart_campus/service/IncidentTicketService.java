@@ -68,6 +68,15 @@ public class IncidentTicketService {
                 .stream().map(TicketResponse::from).collect(Collectors.toList());
     }
 
+    // ── GET REVIEW QUEUE (Technician/Admin) ───────────────────
+    public List<TicketResponse> getTechnicianReviewTickets(User currentUser) {
+        if (currentUser.getRole() != Role.TECHNICIAN && currentUser.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Not authorized: technician or admin access only");
+        }
+        return ticketRepository.findAll()
+                .stream().map(TicketResponse::from).collect(Collectors.toList());
+    }
+
     // ── GET BY ID ──────────────────────────────────────────────
     public TicketResponse getTicketById(String id) {
         return TicketResponse.from(ticketRepository.findById(id)

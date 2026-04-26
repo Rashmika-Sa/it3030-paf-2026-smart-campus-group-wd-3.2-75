@@ -76,6 +76,13 @@ public class IncidentTicketController {
         return ResponseEntity.ok(ticketService.getAssignedTickets(getUser(principal)));
     }
 
+    // GET /api/tickets/review — Tickets visible to technicians for review/reply
+    @GetMapping("/review")
+    public ResponseEntity<List<TicketResponse>> getTechnicianReviewTickets(
+            @AuthenticationPrincipal Object principal) {
+        return ResponseEntity.ok(ticketService.getTechnicianReviewTickets(getUser(principal)));
+    }
+
     // GET /api/tickets/{id} — Get single ticket
     @GetMapping("/{id}")
     public ResponseEntity<TicketResponse> getTicketById(@PathVariable String id) {

@@ -1,22 +1,25 @@
 import { useState } from 'react';
-import { X, MapPin, Tag, Clock, User, Wrench, MessageSquare, Paperclip, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  X, MapPin, Clock, User, Wrench,
+  ChevronDown, ChevronUp
+} from 'lucide-react';
 import CommentSection from './CommentSection';
 import AttachmentUpload from './AttachmentUpload';
 import TechnicianUpdateModal from './TechnicianUpdateModal';
 
 const statusColors = {
-  OPEN: 'bg-blue-100 text-blue-800',
-  IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
-  RESOLVED: 'bg-green-100 text-green-800',
-  CLOSED: 'bg-gray-100 text-gray-600',
-  REJECTED: 'bg-red-100 text-red-800',
+  OPEN: 'bg-blue-50 text-blue-700 border-blue-100',
+  IN_PROGRESS: 'bg-yellow-50 text-yellow-700 border-yellow-100',
+  RESOLVED: 'bg-green-50 text-green-700 border-green-100',
+  CLOSED: 'bg-gray-100 text-gray-600 border-gray-200',
+  REJECTED: 'bg-red-50 text-red-700 border-red-100',
 };
 
 const priorityColors = {
-  LOW: 'bg-green-100 text-green-800',
-  MEDIUM: 'bg-yellow-100 text-yellow-800',
-  HIGH: 'bg-orange-100 text-orange-800',
-  CRITICAL: 'bg-red-100 text-red-800',
+  LOW: 'bg-green-50 text-green-700',
+  MEDIUM: 'bg-yellow-50 text-yellow-700',
+  HIGH: 'bg-orange-50 text-orange-700',
+  CRITICAL: 'bg-red-50 text-red-700',
 };
 
 export default function TicketDetail({ ticket, currentUser, onClose, onUpdate }) {
@@ -29,69 +32,77 @@ export default function TicketDetail({ ticket, currentUser, onClose, onUpdate })
     onUpdate(updated);
   };
 
-  const isAssigned = localTicket.assignedTo?.id === currentUser?.id;
-  const canUpdate = isAssigned || currentUser?.role === 'ADMIN';
+  const isTechnician = currentUser?.role === 'TECHNICIAN';
+  const isAdmin = currentUser?.role === 'ADMIN';
+  const isAssignedTech = localTicket.assignedTo?.id === currentUser?.id;
+  const canUpdateStatus = (isTechnician && isAssignedTech) || isAdmin;
+  const ticketOpen = localTicket.status !== 'CLOSED' && localTicket.status !== 'REJECTED';
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-40 p-0 sm:p-4">
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-2xl max-h-[90vh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-100 shrink-0">
           <div className="flex-1 pr-4">
             <div className="flex flex-wrap gap-2 mb-2">
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusColors[localTicket.status]}`}>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${statusColors[localTicket.status]}`}>
                 {localTicket.status.replace('_', ' ')}
               </span>
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${priorityColors[localTicket.priority]}`}>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${priorityColors[localTicket.priority]}`}>
                 {localTicket.priority}
               </span>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100 text-purple-800">
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700">
                 {localTicket.category}
               </span>
             </div>
-            <h2 className="font-bold text-[#222222] text-lg leading-snug">{localTicket.title}</h2>
+            <h2 className="font-black text-[#222222] text-lg leading-snug">
+              {localTicket.title}
+            </h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors shrink-0">
-            <X className="w-5 h-5 text-gray-500" />
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors shrink-0"
+          >
+            <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
-        {/* Scrollable content */}
+        {/* Scrollable body */}
         <div className="overflow-y-auto flex-1 p-6 space-y-6">
 
           {/* Description */}
-          <div>
-            <p className="text-gray-600 text-sm leading-relaxed">{localTicket.description}</p>
-          </div>
+          <p className="text-gray-500 text-sm leading-relaxed">
+            {localTicket.description}
+          </p>
 
-          {/* Meta info */}
+          {/* Meta grid */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-50 rounded-xl p-3">
+            <div className="bg-gray-50 rounded-2xl p-3">
               <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
                 <MapPin className="w-3 h-3" /> Location
               </p>
-              <p className="text-sm font-medium text-[#222222]">{localTicket.location}</p>
+              <p className="text-sm font-bold text-[#222222]">{localTicket.location}</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3">
+            <div className="bg-gray-50 rounded-2xl p-3">
               <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
                 <User className="w-3 h-3" /> Reported by
               </p>
-              <p className="text-sm font-medium text-[#222222]">{localTicket.createdBy?.name}</p>
+              <p className="text-sm font-bold text-[#222222]">{localTicket.createdBy?.name}</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3">
+            <div className="bg-gray-50 rounded-2xl p-3">
               <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
                 <Wrench className="w-3 h-3" /> Assigned to
               </p>
-              <p className="text-sm font-medium text-[#222222]">
+              <p className="text-sm font-bold text-[#222222]">
                 {localTicket.assignedTo?.name || 'Not assigned'}
               </p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3">
+            <div className="bg-gray-50 rounded-2xl p-3">
               <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
                 <Clock className="w-3 h-3" /> Created
               </p>
-              <p className="text-sm font-medium text-[#222222]">
+              <p className="text-sm font-bold text-[#222222]">
                 {new Date(localTicket.createdAt).toLocaleDateString()}
               </p>
             </div>
@@ -99,9 +110,9 @@ export default function TicketDetail({ ticket, currentUser, onClose, onUpdate })
 
           {/* Contact info */}
           {localTicket.preferredContactName && (
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-              <p className="text-xs font-semibold text-blue-700 mb-2">Preferred Contact</p>
-              <p className="text-sm text-blue-900 font-medium">{localTicket.preferredContactName}</p>
+            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+              <p className="text-xs font-bold text-blue-700 mb-2">Preferred Contact</p>
+              <p className="text-sm font-bold text-blue-900">{localTicket.preferredContactName}</p>
               {localTicket.preferredContactPhone && (
                 <p className="text-sm text-blue-700">{localTicket.preferredContactPhone}</p>
               )}
@@ -113,9 +124,17 @@ export default function TicketDetail({ ticket, currentUser, onClose, onUpdate })
 
           {/* Resolution notes */}
           {localTicket.resolutionNotes && (
-            <div className="bg-green-50 border border-green-100 rounded-xl p-4">
-              <p className="text-xs font-semibold text-green-700 mb-2">Resolution Notes</p>
+            <div className="bg-green-50 border border-green-100 rounded-2xl p-4">
+              <p className="text-xs font-bold text-green-700 mb-2">Resolution Notes</p>
               <p className="text-sm text-green-900">{localTicket.resolutionNotes}</p>
+            </div>
+          )}
+
+          {/* Rejection reason */}
+          {localTicket.rejectionReason && (
+            <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
+              <p className="text-xs font-bold text-red-700 mb-2">Rejection Reason</p>
+              <p className="text-sm text-red-900">{localTicket.rejectionReason}</p>
             </div>
           )}
 
@@ -124,25 +143,27 @@ export default function TicketDetail({ ticket, currentUser, onClose, onUpdate })
             <div>
               <button
                 onClick={() => setShowHistory(!showHistory)}
-                className="flex items-center gap-2 text-sm font-semibold text-[#222222] mb-3 w-full"
+                className="flex items-center gap-2 text-sm font-bold text-[#222222] mb-3 w-full"
               >
-                <Wrench className="w-4 h-4" />
+                <Wrench className="w-4 h-4 text-[#F5A623]" />
                 Update History ({localTicket.technicianUpdates.length})
-                {showHistory ? <ChevronUp className="w-4 h-4 ml-auto" /> : <ChevronDown className="w-4 h-4 ml-auto" />}
+                {showHistory
+                  ? <ChevronUp className="w-4 h-4 ml-auto" />
+                  : <ChevronDown className="w-4 h-4 ml-auto" />}
               </button>
               {showHistory && (
                 <div className="space-y-2">
                   {localTicket.technicianUpdates.map((u) => (
-                    <div key={u.id} className="bg-yellow-50 border border-yellow-100 rounded-xl p-3">
+                    <div key={u.id} className="bg-yellow-50 border border-yellow-100 rounded-2xl p-3">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold text-yellow-800">{u.technicianName}</span>
+                        <span className="text-xs font-bold text-yellow-800">{u.technicianName}</span>
                         <span className="text-xs text-yellow-600">
                           {new Date(u.updatedAt).toLocaleString()}
                         </span>
                       </div>
                       <p className="text-sm text-yellow-900">{u.updateNote}</p>
-                      <span className="text-xs font-medium text-yellow-700 mt-1 block">
-                        Status → {u.statusChanged?.replace('_', ' ')}
+                      <span className="text-xs font-bold text-yellow-700 mt-1 block">
+                        → {u.statusChanged?.replace('_', ' ')}
                       </span>
                     </div>
                   ))}
@@ -151,8 +172,8 @@ export default function TicketDetail({ ticket, currentUser, onClose, onUpdate })
             </div>
           )}
 
-          {/* Attachments */}
-          <div className="border-t border-gray-100 pt-4">
+          {/* Attachments — everyone can upload */}
+          <div className="border-t border-gray-100 pt-5">
             <AttachmentUpload
               ticket={localTicket}
               currentUser={currentUser}
@@ -160,8 +181,8 @@ export default function TicketDetail({ ticket, currentUser, onClose, onUpdate })
             />
           </div>
 
-          {/* Comments */}
-          <div className="border-t border-gray-100 pt-4">
+          {/* Comments — everyone can comment */}
+          <div className="border-t border-gray-100 pt-5">
             <CommentSection
               ticket={localTicket}
               currentUser={currentUser}
@@ -170,20 +191,33 @@ export default function TicketDetail({ ticket, currentUser, onClose, onUpdate })
           </div>
         </div>
 
-        {/* Footer actions */}
-        {canUpdate && localTicket.status !== 'CLOSED' && localTicket.status !== 'REJECTED' && (
-          <div className="p-6 border-t border-gray-100 shrink-0">
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-100 shrink-0 flex gap-3">
+
+          {/* TECHNICIAN / ADMIN only — Update Status */}
+          {canUpdateStatus && ticketOpen && (
             <button
               onClick={() => setShowUpdateModal(true)}
-              className="w-full py-3.5 bg-sliit-gold hover:bg-yellow-500 text-[#222222] rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2"
+              className="flex-1 py-3.5 bg-[#F5A623] hover:bg-yellow-500 text-[#222222] rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-md"
             >
               <Wrench className="w-4 h-4" />
-              Update Ticket Status
+              Update Status
             </button>
-          </div>
-        )}
+          )}
+
+          {/* Close button — always */}
+          <button
+            onClick={onClose}
+            className={`py-3.5 border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors ${
+              canUpdateStatus && ticketOpen ? 'flex-none px-6' : 'flex-1'
+            }`}
+          >
+            Close
+          </button>
+        </div>
       </div>
 
+      {/* Technician update modal */}
       {showUpdateModal && (
         <TechnicianUpdateModal
           ticket={localTicket}

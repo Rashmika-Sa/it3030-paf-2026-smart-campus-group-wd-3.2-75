@@ -16,6 +16,13 @@ export const ticketApi = {
     return res.json();
   },
 
+  // Get review queue (technician/admin)
+  getReviewQueue: async () => {
+    const res = await fetch(`${BACKEND}/api/tickets/review`, { headers: headers() });
+    if (!res.ok) throw new Error('Failed to fetch review queue');
+    return res.json();
+  },
+
   // Get all tickets (admin view)
   getAll: async () => {
     const res = await fetch(`${BACKEND}/api/tickets`, { headers: headers() });
