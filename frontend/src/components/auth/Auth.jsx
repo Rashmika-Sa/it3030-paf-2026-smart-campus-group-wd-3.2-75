@@ -13,9 +13,9 @@ export default function Auth() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const user = res.ok ? await res.json() : null;
-      navigate(user?.role === 'ADMIN' ? '/admin' : '/dashboard');
+      navigate(user?.role === 'ADMIN' ? '/admin' : '/resources');
     } catch {
-      navigate('/dashboard');
+      navigate('/resources');
     }
   };
 
@@ -151,7 +151,7 @@ export default function Auth() {
 
         if (response.ok) {
           localStorage.setItem('token', data.token);
-          navigate('/dashboard');
+          navigate('/resources');
         } else {
           setErrorMessage(data.message || data.error || 'Only SLIIT email accounts are allowed.');
         }

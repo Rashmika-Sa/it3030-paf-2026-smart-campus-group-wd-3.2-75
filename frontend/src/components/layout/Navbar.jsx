@@ -20,11 +20,11 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'About', restricted: false, href: '/about', route: true },
-    { name: 'Bookings', restricted: true, href: '/dashboard#bookings', route: true },
-    { name: 'Resources', restricted: true, href: '/dashboard#resources', route: true },
-    { name: 'Tickets', restricted: true, href: '/dashboard#tickets', route: true },
-    { name: 'Notifications', restricted: true, href: '/dashboard#notifications', route: true },
-    { name: 'Facilities', restricted: true, href: '/dashboard#facilities', route: true },
+    { name: 'Bookings', restricted: true, href: '/resources#booking', route: true },
+    { name: 'Resources', restricted: true, href: '/resources#resources', route: true },
+    { name: 'Tickets', restricted: true, href: '/resources#tickets', route: true },
+    { name: 'Notifications', restricted: true, href: '/resources#notifications', route: true },
+    { name: 'Facilities', restricted: true, href: '/resources#facilities', route: true },
   ];
 
   return (
