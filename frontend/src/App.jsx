@@ -3,7 +3,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import LandingPage from './pages/LandingPage';
 import AboutPage from './pages/AboutPage';
-import DashboardPage from './pages/DashboardPage';
+import ResourcePage from './pages/ResourcePage';
 import AdminDashboard from './pages/AdminDashboard';
 import Auth from './components/auth/Auth';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -21,12 +21,12 @@ export default function App() {
 
           {/* Protected: users */}
           <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
+              path="/resources"
+              element={
+               <ProtectedRoute>
+                  <ResourcePage />
+               </ProtectedRoute>
+           }
           />
 
           {/* Protected: admins only */}
