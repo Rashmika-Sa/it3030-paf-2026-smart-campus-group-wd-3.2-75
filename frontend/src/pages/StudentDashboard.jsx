@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ClipboardList, Plus, Clock, CheckCircle,
   AlertCircle, X, Loader2, MapPin, MessageSquare,
@@ -53,6 +53,8 @@ export default function StudentDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [createScreenshot, setCreateScreenshot] = useState(null);
+  const screenshotInputRef = useRef(null);
 
   const [form, setForm] = useState({
     title: '', description: '', location: '',
@@ -95,15 +97,21 @@ export default function StudentDashboard() {
     setCreateError('');
     try {
       const newTicket = await ticketApi.create(form);
-      setTickets((prev) => [newTicket, ...prev]);
+      const createdTicket = createScreenshot
+        ? await ticketApi.uploadAttachment(newTicket.id, createScreenshot)
+        : newTicket;
+
+      setTickets((prev) => [createdTicket, ...prev]);
       setShowCreateModal(false);
       setForm({
         title: '', description: '', location: '',
         category: 'EQUIPMENT', priority: 'MEDIUM',
         preferredContactName: '', preferredContactPhone: '', preferredContactEmail: ''
       });
+      setCreateScreenshot(null);
+      if (screenshotInputRef.current) screenshotInputRef.current.value = '';
     } catch (e) {
-      setCreateError('Failed to create ticket. Please try again.');
+      setCreateError(e.message || 'Failed to create ticket. Please try again.');
     } finally {
       setCreating(false);
     }
@@ -476,10 +484,45 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
+              <div className="border border-dashed border-gray-200 rounded-2xl p-4 bg-white">
+                <label className="block text-sm font-bold text-[#222222] mb-2">
+                  Screenshot / Image attachment
+                </label>
+                <input
+                  ref={screenshotInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    if (file && !file.type.startsWith('image/')) {
+                      alert('Only image files are allowed');
+                      e.target.value = '';
+                      setCreateScreenshot(null);
+                      return;
+                    }
+                    setCreateScreenshot(file);
+                  }}
+                  className="w-full text-sm text-gray-500 file:mr-4 file:rounded-xl file:border-0 file:bg-[#F5A623] file:px-4 file:py-2 file:text-sm file:font-bold file:text-[#222222] hover:file:bg-yellow-400"
+                />
+                <p className="text-xs text-gray-400 mt-2">
+                  Optional. Add one screenshot so the technician can review it with the report.
+                </p>
+                {createScreenshot && (
+                  <p className="text-xs font-semibold text-[#222222] mt-2 truncate">
+                    Selected: {createScreenshot.name}
+                  </p>
+                )}
+              </div>
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => { setShowCreateModal(false); setCreateError(''); }}
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setCreateError('');
+                    setCreateScreenshot(null);
+                    if (screenshotInputRef.current) screenshotInputRef.current.value = '';
+                  }}
                   className="flex-1 py-3.5 border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
                 >
                   Cancel

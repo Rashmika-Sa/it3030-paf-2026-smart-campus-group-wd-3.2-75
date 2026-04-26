@@ -4,13 +4,18 @@ import com.wd32._5.smart_campus.dto.*;
 import com.wd32._5.smart_campus.entity.*;
 import com.wd32._5.smart_campus.service.IncidentTicketService;
 import jakarta.validation.Valid;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 
 @RestController
@@ -186,4 +191,27 @@ public class IncidentTicketController {
         return ResponseEntity.ok(
                 ticketService.deleteAttachment(ticketId, attachmentId, getUser(principal)));
     }
+
+        // GET /api/tickets/{ticketId}/attachments/{attachmentId}/view — View attachment image
+        @GetMapping("/{ticketId}/attachments/{attachmentId}/view")
+        public ResponseEntity<Resource> viewAttachment(
+            @PathVariable String ticketId,
+            @PathVariable String attachmentId,
+            @AuthenticationPrincipal Object principal) throws IOException {
+        IncidentTicketService.AttachmentFile attachment =
+            ticketService.getAttachmentFile(ticketId, attachmentId, getUser(principal));
+
+        Path filePath = attachment.getFilePath();
+        Resource resource = new UrlResource(filePath.toUri());
+        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        if (attachment.getContentType() != null) {
+            mediaType = MediaType.parseMediaType(attachment.getContentType());
+        }
+
+        return ResponseEntity.ok()
+            .contentType(mediaType)
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                "inline; filename=\"" + attachment.getFileName() + "\"")
+            .body(resource);
+        }
 }

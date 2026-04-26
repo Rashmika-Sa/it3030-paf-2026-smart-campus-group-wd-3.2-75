@@ -146,6 +146,16 @@ export const ticketApi = {
     return res.json();
   },
 
+  // View attachment image
+  viewAttachment: async (ticketId, attachmentId) => {
+    const res = await fetch(`${BACKEND}/api/tickets/${ticketId}/attachments/${attachmentId}/view`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) await parseError(res, 'Failed to load attachment');
+    return res.blob();
+  },
+
   // Delete ticket
   delete: async (id) => {
     const res = await fetch(`${BACKEND}/api/tickets/${id}`, {

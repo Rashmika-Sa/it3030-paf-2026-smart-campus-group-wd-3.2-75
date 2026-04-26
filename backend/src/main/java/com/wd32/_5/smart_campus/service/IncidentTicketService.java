@@ -18,6 +18,22 @@ import java.util.stream.Collectors;
 @Service
 public class IncidentTicketService {
 
+    public static class AttachmentFile {
+        private final Path filePath;
+        private final String contentType;
+        private final String fileName;
+
+        public AttachmentFile(Path filePath, String contentType, String fileName) {
+            this.filePath = filePath;
+            this.contentType = contentType;
+            this.fileName = fileName;
+        }
+
+        public Path getFilePath() { return filePath; }
+        public String getContentType() { return contentType; }
+        public String getFileName() { return fileName; }
+    }
+
     private final IncidentTicketRepository ticketRepository;
     private final UserRepository userRepository;
 
@@ -305,6 +321,31 @@ public class IncidentTicketService {
         ticket.getAttachments().add(attachment);
         ticket.setUpdatedAt(LocalDateTime.now());
         return TicketResponse.from(ticketRepository.save(ticket));
+    }
+
+    // ── VIEW ATTACHMENT ────────────────────────────────────────
+    public AttachmentFile getAttachmentFile(String ticketId, String attachmentId, User currentUser) {
+        IncidentTicket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new RuntimeException("Ticket not found: " + ticketId));
+
+        boolean canAccess = currentUser.getRole() == Role.ADMIN
+                || currentUser.getRole() == Role.TECHNICIAN
+                || ticket.getCreatedById().equals(currentUser.getId())
+                || (ticket.getAssignedToId() != null && ticket.getAssignedToId().equals(currentUser.getId()));
+        if (!canAccess) {
+            throw new RuntimeException("Not authorized to view this attachment");
+        }
+
+        TicketAttachment attachment = ticket.getAttachments().stream()
+                .filter(a -> a.getId().equals(attachmentId)).findFirst()
+                .orElseThrow(() -> new RuntimeException("Attachment not found: " + attachmentId));
+
+        Path filePath = Paths.get(attachment.getFilePath());
+        if (!Files.exists(filePath)) {
+            throw new RuntimeException("Attachment file not found on server");
+        }
+
+        return new AttachmentFile(filePath, attachment.getFileType(), attachment.getFileName());
     }
 
     // ── DELETE ATTACHMENT ──────────────────────────────────────

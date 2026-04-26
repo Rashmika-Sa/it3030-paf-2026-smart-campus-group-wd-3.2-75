@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
-import { Upload, Trash2, Image } from 'lucide-react';
+import { Upload, Trash2, Image, Eye } from 'lucide-react';
 import { ticketApi } from '../../hooks/useTickets';
 
 export default function AttachmentUpload({ ticket, currentUser, onUpdate }) {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef();
+  const canUpload = currentUser?.role === 'STUDENT' && ticket.createdById === currentUser?.id;
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];
@@ -39,6 +40,22 @@ export default function AttachmentUpload({ ticket, currentUser, onUpdate }) {
     }
   };
 
+  const handleView = async (attachmentId) => {
+    try {
+      const previewWindow = window.open('', '_blank', 'noopener,noreferrer');
+      if (!previewWindow) {
+        alert('Please allow pop-ups to preview the image.');
+        return;
+      }
+      const blob = await ticketApi.viewAttachment(ticket.id, attachmentId);
+      const url = URL.createObjectURL(blob);
+      previewWindow.location.href = url;
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
   return (
     <div>
       <h4 className="font-semibold text-[#222222] mb-3">
@@ -56,10 +73,18 @@ export default function AttachmentUpload({ ticket, currentUser, onUpdate }) {
             <span className="text-xs text-gray-400">
               {(a.fileSize / 1024).toFixed(1)} KB
             </span>
+            <button
+              onClick={() => handleView(a.id)}
+              className="p-1 text-gray-400 hover:text-blue-600 rounded transition-colors"
+              title="View image"
+            >
+              <Eye className="w-3.5 h-3.5" />
+            </button>
             {a.uploadedById === currentUser?.id && (
               <button
                 onClick={() => handleDelete(a.id)}
                 className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                title="Delete image"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -68,7 +93,7 @@ export default function AttachmentUpload({ ticket, currentUser, onUpdate }) {
         ))}
       </div>
 
-      {ticket.attachments?.length < 3 && (
+      {canUpload && ticket.attachments?.length < 3 && (
         <>
           <input
             ref={fileRef}
