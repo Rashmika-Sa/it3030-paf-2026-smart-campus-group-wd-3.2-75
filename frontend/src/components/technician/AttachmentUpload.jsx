@@ -4,6 +4,7 @@ import { ticketApi } from '../../hooks/useTickets';
 
 export default function AttachmentUpload({ ticket, currentUser, onUpdate }) {
   const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(null);
   const fileRef = useRef();
   const canUpload = currentUser?.role === 'STUDENT' && ticket.createdById === currentUser?.id;
 
@@ -42,18 +43,19 @@ export default function AttachmentUpload({ ticket, currentUser, onUpdate }) {
 
   const handleView = async (attachmentId) => {
     try {
-      const previewWindow = window.open('', '_blank', 'noopener,noreferrer');
-      if (!previewWindow) {
-        alert('Please allow pop-ups to preview the image.');
-        return;
-      }
       const blob = await ticketApi.viewAttachment(ticket.id, attachmentId);
       const url = URL.createObjectURL(blob);
-      previewWindow.location.href = url;
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      setPreview({ url, name: ticket.attachments?.find((a) => a.id === attachmentId)?.fileName || 'Image preview' });
     } catch (e) {
       alert(e.message);
     }
+  };
+
+  const closePreview = () => {
+    if (preview?.url) {
+      URL.revokeObjectURL(preview.url);
+    }
+    setPreview(null);
   };
 
   return (
@@ -111,6 +113,32 @@ export default function AttachmentUpload({ ticket, currentUser, onUpdate }) {
             {uploading ? 'Uploading...' : 'Upload image'}
           </button>
         </>
+      )}
+
+      {preview && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <div>
+                <p className="text-sm font-bold text-[#222222]">{preview.name}</p>
+                <p className="text-xs text-gray-400">Attachment preview</p>
+              </div>
+              <button
+                onClick={closePreview}
+                className="px-3 py-2 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+            <div className="p-4 bg-gray-50 overflow-auto flex items-center justify-center">
+              <img
+                src={preview.url}
+                alt={preview.name}
+                className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-lg"
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

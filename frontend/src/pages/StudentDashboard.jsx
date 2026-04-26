@@ -175,12 +175,12 @@ export default function StudentDashboard() {
               Here is what's happening on campus today.
             </p>
           </div>
-          <button
+            <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 bg-[#222222] text-white px-6 py-3.5 rounded-2xl font-bold hover:scale-105 transition-transform shadow-md shrink-0"
           >
             <Plus className="w-5 h-5" />
-            Report Incident
+            Create Ticket
           </button>
         </div>
 
@@ -214,7 +214,7 @@ export default function StudentDashboard() {
                   : 'bg-gray-50 border border-gray-100 text-gray-500 hover:bg-gray-100'
               }`}
             >
-              {tab === 'MY_INCIDENTS' ? 'My Incidents' : 'Complete'}
+              {tab === 'MY_INCIDENTS' ? 'My Tickets' : 'Complete'}
             </button>
           ))}
         </div>
@@ -277,13 +277,13 @@ export default function StudentDashboard() {
                   ? `No results for "${search}".`
                   : activeTab === 'COMPLETE'
                   ? 'No technician replies available yet.'
-                  : 'You have not reported any incidents yet.'}
+                  : 'You have not reported any tickets yet.'}
               </p>
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="bg-[#F5A623] text-[#222222] px-8 py-4 rounded-full font-bold hover:scale-105 transition-transform"
               >
-                Report Your First Incident
+                Create Your First Ticket
               </button>
             </div>
           </div>
@@ -364,7 +364,7 @@ export default function StudentDashboard() {
                 onClick={() => setShowCreateModal(true)}
                 className="bg-[#F5A623] text-[#222222] px-8 py-4 rounded-full font-bold hover:scale-105 transition-transform shrink-0"
               >
-                Report Incident
+                Create Ticket
               </button>
             </div>
             <div className="absolute top-[-20%] right-[-10%] w-80 h-80 bg-[#F5A623]/10 rounded-full blur-3xl" />
@@ -381,7 +381,7 @@ export default function StudentDashboard() {
 
             <div className="flex items-center justify-between p-6 border-b border-gray-100 shrink-0">
               <div>
-                <h3 className="font-black text-[#222222] text-xl">Report an Incident</h3>
+                <h3 className="font-black text-[#222222] text-xl">Create a Ticket</h3>
                 <p className="text-gray-400 text-sm">Fill in the details below</p>
               </div>
               <button
