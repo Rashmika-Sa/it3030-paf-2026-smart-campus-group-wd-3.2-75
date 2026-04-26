@@ -1,202 +1,459 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, 
-  Wrench, 
-  AlertCircle, 
-  CheckCircle, 
-  Menu, 
-  X, 
-  LogOut, 
-  ClipboardList,
-  GraduationCap
+  ClipboardList, Plus, Bell, Clock, 
+  CheckCircle, AlertCircle, X, Loader2,
+  MapPin, Tag, ChevronRight, Search,
+  Paperclip, MessageSquare, Filter
 } from 'lucide-react';
+import Navbar from '../components/layout/Navbar';
+import Footer from '../components/layout/Footer';
+import { useAuth } from '../hooks/useAuth';
+import { ticketApi } from '../hooks/useTickets';
+import TicketDetail from '../components/technician/TicketDetail';
 
-// Make sure to import your useAuth hook and any other needed context
-// import { useAuth } from '../context/AuthContext'; 
+const CATEGORIES = ['ELECTRICAL','PLUMBING','HVAC','EQUIPMENT','NETWORK','FURNITURE','SECURITY','CLEANING','OTHER'];
+const PRIORITIES = ['LOW','MEDIUM','HIGH','CRITICAL'];
 
-// ─── Placeholder section ───────────────────────────────────────────────────────
-function PlaceholderSection({ icon, title, description }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-32 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4 text-gray-300">
-        {icon}
-      </div>
-      <h3 className="text-lg font-bold text-[#222222] mb-1">{title}</h3>
-      <p className="text-gray-500 text-sm max-w-xs">{description}</p>
-    </div>
-  );
-}
+const statusColors = {
+  OPEN: 'bg-blue-50 text-blue-700 border-blue-100',
+  IN_PROGRESS: 'bg-yellow-50 text-yellow-700 border-yellow-100',
+  RESOLVED: 'bg-green-50 text-green-700 border-green-100',
+  CLOSED: 'bg-gray-100 text-gray-600 border-gray-200',
+  REJECTED: 'bg-red-50 text-red-700 border-red-100',
+};
 
-// ─── Overview Section ─────────────────────────────────────────────────────────
-function OverviewSection() {
-  const stats = [
-    { label: 'Pending Repairs', value: 12, icon: <AlertCircle className="w-5 h-5" />, color: 'text-red-600 bg-red-50' },
-    { label: 'In Progress', value: 5, icon: <Wrench className="w-5 h-5" />, color: 'text-yellow-600 bg-yellow-50' },
-    { label: 'Resolved Today', value: 8, icon: <CheckCircle className="w-5 h-5" />, color: 'text-emerald-600 bg-emerald-50' },
-  ];
+const priorityColors = {
+  LOW: 'bg-green-50 text-green-700',
+  MEDIUM: 'bg-yellow-50 text-yellow-700',
+  HIGH: 'bg-orange-50 text-orange-700',
+  CRITICAL: 'bg-red-50 text-red-700',
+};
 
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${s.color}`}>
-              {s.icon}
-            </div>
-            <div className="min-w-0">
-              <p className="text-2xl font-extrabold text-[#222222]">{s.value}</p>
-              <p className="text-xs text-gray-500 truncate">{s.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+export default function StudentDashboard() {
+  const { user } = useAuth();
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 className="font-bold text-[#222222] mb-4">Recent Maintenance Requests</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                {['Resource', 'Issue', 'Reported', 'Status'].map((h) => (
-                  <th key={h} className="text-left py-2 px-3 text-xs font-semibold text-gray-400 uppercase">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="py-2.5 px-3 font-medium text-[#222222]">Projector - Lab 402</td>
-                <td className="py-2.5 px-3 text-gray-500">Not displaying colors correctly</td>
-                <td className="py-2.5 px-3 text-gray-500">2 hours ago</td>
-                <td className="py-2.5 px-3">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
-                    Pending
-                  </span>
-                </td>
-              </tr>
-              <tr className="border-b border-gray-50 hover:bg-gray-50">
-                <td className="py-2.5 px-3 font-medium text-[#222222]">AC Unit - Main Hall</td>
-                <td className="py-2.5 px-3 text-gray-500">Leaking water</td>
-                <td className="py-2.5 px-3 text-gray-500">Yesterday</td>
-                <td className="py-2.5 px-3">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">
-                    In Progress
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [filter, setFilter] = useState('ALL');
+  const [search, setSearch] = useState('');
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
 
-// ─── Main Technician Dashboard ────────────────────────────────────────────────
-export default function TechnicianDashboard() {
-  const navigate = useNavigate();
-  // Uncomment this when you link up your AuthContext
-  // const { user } = useAuth(); 
-  
-  // Mock user for testing until auth is connected
-  const user = { name: 'Lab Technician', email: 'technician@my.sliit.lk' };
+  const [form, setForm] = useState({
+    title: '', description: '', location: '',
+    category: 'EQUIPMENT', priority: 'MEDIUM',
+    preferredContactName: '', preferredContactPhone: '', preferredContactEmail: ''
+  });
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeSection, setActiveSection] = useState('overview');
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/auth'); // Change this to your actual login route
+  const fetchTickets = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await ticketApi.getAll();
+      setTickets(data);
+    } catch (e) {
+      setError('Failed to load tickets.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const navItems = [
-    { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-5 h-5" /> },
-    { id: 'maintenance', label: 'Maintenance Tasks', icon: <Wrench className="w-5 h-5" /> },
-    { id: 'inventory', label: 'Equipment Inventory', icon: <ClipboardList className="w-5 h-5" /> },
-  ];
+  useEffect(() => { fetchTickets(); }, []);
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim() || !form.description.trim() || !form.location.trim()) {
+      setCreateError('Title, description and location are required.');
+      return;
+    }
+    setCreating(true);
+    setCreateError('');
+    try {
+      const newTicket = await ticketApi.create(form);
+      setTickets((prev) => [newTicket, ...prev]);
+      setShowCreateModal(false);
+      setForm({
+        title: '', description: '', location: '',
+        category: 'EQUIPMENT', priority: 'MEDIUM',
+        preferredContactName: '', preferredContactPhone: '', preferredContactEmail: ''
+      });
+    } catch (e) {
+      setCreateError('Failed to create ticket. Please try again.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleTicketUpdate = (updated) => {
+    setTickets((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    setSelectedTicket(updated);
+  };
+
+  const filtered = tickets
+    .filter((t) => filter === 'ALL' || t.status === filter)
+    .filter((t) =>
+      search === '' ||
+      t.title.toLowerCase().includes(search.toLowerCase()) ||
+      t.location.toLowerCase().includes(search.toLowerCase())
+    );
+
+  const stats = {
+    total: tickets.length,
+    open: tickets.filter((t) => t.status === 'OPEN').length,
+    inProgress: tickets.filter((t) => t.status === 'IN_PROGRESS').length,
+    resolved: tickets.filter((t) => t.status === 'RESOLVED').length,
+  };
+
+  const firstName = user?.name?.split(' ')[0] || 'Student';
 
   return (
-    <div className="flex h-screen bg-[#f5f6fa] overflow-hidden">
+    <div className="min-h-screen bg-white font-poppins flex flex-col">
+      <Navbar />
 
-      {/* ── Sidebar ── */}
-      <aside className={`${sidebarOpen ? 'w-60' : 'w-16'} bg-[#1a1a1a] flex flex-col transition-all duration-300 ease-in-out shrink-0`}>
-        {/* Logo */}
-        <div className="flex items-center justify-between px-4 h-16 border-b border-white/10">
-          {sidebarOpen && (
-            <div className="flex items-center gap-2">
-              <GraduationCap className="w-6 h-6 text-emerald-500" />
-              <span className="font-bold text-white text-sm tracking-tight">
-                SLIIT-HUB<span className="text-emerald-500">.</span>
-              </span>
-            </div>
-          )}
-          <button onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`text-gray-500 hover:text-white transition-colors ${!sidebarOpen ? 'mx-auto' : ''}`}>
-            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      <main className="flex-grow pt-24 pb-12 px-6 max-w-7xl mx-auto w-full">
+
+        {/* Welcome Header */}
+        <div className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-black text-[#001f5b] mb-2 tracking-tight">
+              Welcome back, <span className="text-[#F5A623]">{firstName}</span>
+            </h1>
+            <p className="text-gray-500 font-medium text-lg">
+              Report incidents and track your maintenance requests.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 bg-[#222222] text-white px-6 py-3.5 rounded-2xl font-bold hover:scale-105 transition-transform shadow-md shrink-0"
+          >
+            <Plus className="w-5 h-5" />
+            Report Incident
           </button>
         </div>
 
-        {/* Technician badge */}
-        {sidebarOpen && (
-          <div className="mx-3 mt-4 mb-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-            <p className="text-xs text-emerald-500 font-bold uppercase tracking-wider">Technician Panel</p>
-            <p className="text-xs text-gray-400 truncate mt-0.5">{user?.name || user?.email}</p>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+          {[
+            { label: 'My Tickets', value: stats.total, icon: ClipboardList, color: 'bg-purple-50 text-purple-600' },
+            { label: 'Open', value: stats.open, icon: AlertCircle, color: 'bg-blue-50 text-blue-600' },
+            { label: 'In Progress', value: stats.inProgress, icon: Clock, color: 'bg-orange-50 text-[#F5A623]' },
+            { label: 'Resolved', value: stats.resolved, icon: CheckCircle, color: 'bg-emerald-50 text-emerald-600' },
+          ].map((item, i) => (
+            <div key={i} className="p-6 rounded-3xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow">
+              <div className={`w-12 h-12 ${item.color} rounded-2xl flex items-center justify-center mb-4`}>
+                <item.icon size={22} />
+              </div>
+              <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">{item.label}</p>
+              <p className="text-3xl font-black text-[#222222]">{item.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Search + Filter */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search tickets by title or location..."
+              className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm outline-none focus:border-[#F5A623] focus:ring-2 focus:ring-yellow-100 transition-all"
+            />
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-0.5">
+            {['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-3 rounded-2xl text-sm font-bold whitespace-nowrap transition-all ${
+                  filter === f
+                    ? 'bg-[#222222] text-white shadow-sm'
+                    : 'bg-gray-50 border border-gray-100 text-gray-500 hover:bg-gray-100'
+                }`}
+              >
+                {f === 'ALL' ? 'All' : f.replace('_', ' ')}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-sm text-red-600 flex items-center gap-2 mb-4">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {error}
+            <button onClick={fetchTickets} className="ml-auto underline font-bold">Retry</button>
           </div>
         )}
 
-        {/* Nav */}
-        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
-          {navItems.map((item) => (
-            <button key={item.id} onClick={() => setActiveSection(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium group
-                ${activeSection === item.id
-                  ? 'bg-emerald-500 text-[#1a1a1a]'
-                  : 'text-gray-400 hover:text-white hover:bg-white/10'}`}>
-              <span className="shrink-0">{item.icon}</span>
-              {sidebarOpen && <span>{item.label}</span>}
-            </button>
-          ))}
-        </nav>
-
-        {/* Logout */}
-        <div className="px-2 pb-4 border-t border-white/10 pt-3">
-          <button onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors text-sm font-medium">
-            <LogOut className="w-5 h-5 shrink-0" />
-            {sidebarOpen && <span>Logout</span>}
-          </button>
-        </div>
-      </aside>
-
-      {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top bar */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0">
-          <div>
-            <h1 className="text-base font-bold text-[#222222] capitalize">
-              {navItems.find((n) => n.id === activeSection)?.label || activeSection}
-            </h1>
-            <p className="text-xs text-gray-400">Smart Campus — Technical Support</p>
+        {/* Loading */}
+        {loading && (
+          <div className="flex items-center justify-center py-24">
+            <div className="w-10 h-10 border-4 border-[#F5A623] border-t-transparent rounded-full animate-spin" />
           </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:block text-sm font-medium text-gray-600">{user?.name || user?.email}</span>
-            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-sm">
-              {(user?.name || user?.email || 'T')[0].toUpperCase()}
+        )}
+
+        {/* Empty */}
+        {!loading && filtered.length === 0 && (
+          <div className="bg-[#222222] rounded-[2.5rem] p-12 text-center text-white relative overflow-hidden">
+            <div className="absolute top-[-20%] right-[-10%] w-80 h-80 bg-[#F5A623]/10 rounded-full blur-3xl" />
+            <div className="relative z-10">
+              <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-5">
+                <ClipboardList className="w-8 h-8 text-[#F5A623]" />
+              </div>
+              <h3 className="text-2xl font-black mb-2">No tickets found</h3>
+              <p className="text-gray-400 mb-6 max-w-xs mx-auto">
+                {search
+                  ? `No results for "${search}".`
+                  : 'You have not reported any incidents yet.'}
+              </p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="bg-[#F5A623] text-[#222222] px-8 py-4 rounded-full font-bold hover:scale-105 transition-transform"
+              >
+                Report Incident
+              </button>
             </div>
           </div>
-        </header>
+        )}
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          {activeSection === 'overview' && <OverviewSection />}
-          {activeSection === 'maintenance' && (
-            <PlaceholderSection icon={<Wrench className="w-8 h-8" />} title="Maintenance Tasks" description="View and update the status of broken resources." />
-          )}
-          {activeSection === 'inventory' && (
-            <PlaceholderSection icon={<ClipboardList className="w-8 h-8" />} title="Equipment Inventory" description="Manage spare parts and technical inventory." />
-          )}
-        </main>
-      </div>
+        {/* Ticket List */}
+        {!loading && filtered.length > 0 && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-400 font-medium">
+              Showing <span className="font-bold text-[#222222]">{filtered.length}</span> ticket{filtered.length !== 1 ? 's' : ''}
+            </p>
+            {filtered.map((ticket) => (
+              <div
+                key={ticket.id}
+                onClick={() => setSelectedTicket(ticket)}
+                className="bg-white border border-gray-100 rounded-3xl p-5 sm:p-6 cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col sm:flex-row sm:items-center gap-4"
+              >
+                {/* Priority indicator */}
+                <div className={`w-1.5 self-stretch rounded-full shrink-0 hidden sm:block ${
+                  ticket.priority === 'CRITICAL' ? 'bg-red-500' :
+                  ticket.priority === 'HIGH' ? 'bg-orange-400' :
+                  ticket.priority === 'MEDIUM' ? 'bg-yellow-400' : 'bg-green-400'
+                }`} />
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${statusColors[ticket.status]}`}>
+                      {ticket.status.replace('_', ' ')}
+                    </span>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${priorityColors[ticket.priority]}`}>
+                      {ticket.priority}
+                    </span>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700">
+                      {ticket.category}
+                    </span>
+                  </div>
+
+                  <h3 className="font-black text-[#222222] text-base mb-1 line-clamp-1">{ticket.title}</h3>
+                  <p className="text-gray-400 text-sm line-clamp-1 mb-3">{ticket.description}</p>
+
+                  <div className="flex flex-wrap gap-3 text-xs text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />{ticket.location}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {new Date(ticket.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MessageSquare className="w-3 h-3" />{ticket.comments?.length || 0} comments
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Paperclip className="w-3 h-3" />{ticket.attachments?.length || 0} files
+                    </span>
+                  </div>
+                </div>
+
+                <ChevronRight className="w-5 h-5 text-gray-300 shrink-0 hidden sm:block" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* CTA Banner */}
+        {!loading && tickets.length > 0 && (
+          <div className="bg-[#222222] rounded-[2.5rem] p-8 md:p-10 text-white overflow-hidden relative mt-10">
+            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold mb-1">Need to report something?</h2>
+                <p className="text-gray-400 text-sm max-w-md">
+                  Report any facility issues or incidents and we'll get someone on it right away.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="bg-[#F5A623] text-[#222222] px-8 py-4 rounded-full font-bold hover:scale-105 transition-transform shrink-0"
+              >
+                Report Incident
+              </button>
+            </div>
+            <div className="absolute top-[-20%] right-[-10%] w-80 h-80 bg-[#F5A623]/10 rounded-full blur-3xl" />
+          </div>
+        )}
+      </main>
+
+      <Footer />
+
+      {/* ── CREATE TICKET MODAL ── */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-xl max-h-[90vh] flex flex-col">
+
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 shrink-0">
+              <div>
+                <h3 className="font-black text-[#222222] text-xl">Report an Incident</h3>
+                <p className="text-gray-400 text-sm">Fill in the details below</p>
+              </div>
+              <button
+                onClick={() => { setShowCreateModal(false); setCreateError(''); }}
+                className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleCreate} className="overflow-y-auto flex-1 p-6 space-y-4">
+              {createError && (
+                <div className="bg-red-50 border border-red-100 rounded-2xl p-3 text-sm text-red-600 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {createError}
+                </div>
+              )}
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-bold text-[#222222] mb-1.5">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="e.g. Projector not working in Lab 3"
+                  className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#F5A623] focus:ring-2 focus:ring-yellow-100 bg-gray-50 transition-all"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-bold text-[#222222] mb-1.5">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="Describe the issue in detail..."
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#F5A623] focus:ring-2 focus:ring-yellow-100 bg-gray-50 resize-none transition-all"
+                />
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="block text-sm font-bold text-[#222222] mb-1.5">
+                  Location <span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  placeholder="e.g. Lab 3, Block A, Ground Floor"
+                  className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#F5A623] focus:ring-2 focus:ring-yellow-100 bg-gray-50 transition-all"
+                />
+              </div>
+
+              {/* Category + Priority */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-bold text-[#222222] mb-1.5">Category</label>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#F5A623] bg-gray-50 transition-all"
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-[#222222] mb-1.5">Priority</label>
+                  <select
+                    value={form.priority}
+                    onChange={(e) => setForm({ ...form, priority: e.target.value })}
+                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#F5A623] bg-gray-50 transition-all"
+                  >
+                    {PRIORITIES.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Contact section */}
+              <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50 space-y-3">
+                <p className="text-sm font-bold text-[#222222]">Preferred Contact (optional)</p>
+                <input
+                  value={form.preferredContactName}
+                  onChange={(e) => setForm({ ...form, preferredContactName: e.target.value })}
+                  placeholder="Contact name"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#F5A623] bg-white transition-all"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    value={form.preferredContactPhone}
+                    onChange={(e) => setForm({ ...form, preferredContactPhone: e.target.value })}
+                    placeholder="Phone number"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#F5A623] bg-white transition-all"
+                  />
+                  <input
+                    value={form.preferredContactEmail}
+                    onChange={(e) => setForm({ ...form, preferredContactEmail: e.target.value })}
+                    placeholder="Email"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[#F5A623] bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Submit buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowCreateModal(false); setCreateError(''); }}
+                  className="flex-1 py-3.5 border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="flex-1 py-3.5 bg-[#F5A623] hover:bg-yellow-500 text-[#222222] rounded-2xl text-sm font-black transition-colors flex items-center justify-center gap-2 disabled:opacity-70 shadow-md"
+                >
+                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Submit Report'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Ticket Detail Modal */}
+      {selectedTicket && (
+        <TicketDetail
+          ticket={selectedTicket}
+          currentUser={user}
+          onClose={() => setSelectedTicket(null)}
+          onUpdate={handleTicketUpdate}
+        />
+      )}
     </div>
   );
 }

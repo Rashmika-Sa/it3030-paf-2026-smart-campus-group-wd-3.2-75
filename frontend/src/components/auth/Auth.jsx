@@ -18,7 +18,7 @@ export default function Auth() {
       if (user?.role === 'ADMIN') {
         navigate('/admin');
       } else if (user?.role === 'TECHNICIAN') {
-        navigate('/technician');
+        navigate('/technician-dashboard');
       } else {
         navigate('/dashboard'); 
       }
