@@ -18,7 +18,7 @@ export default function Auth() {
       if (user?.role === 'ADMIN') {
         navigate('/admin');
       } else if (user?.role === 'TECHNICIAN') {
-        navigate('/technician');
+        navigate('/admin');
       } else {
         navigate('/dashboard'); 
       }
@@ -91,7 +91,7 @@ export default function Auth() {
       const data = await response.json().catch(() => ({}));
 
       if (response.ok) {
-        // ✨ VIP BYPASS LOGIC ✨
+        
         if (data.token) {
           // If a token is provided immediately, skip OTP and login
           localStorage.setItem('token', data.token);

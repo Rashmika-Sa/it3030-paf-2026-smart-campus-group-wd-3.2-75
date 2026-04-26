@@ -7,7 +7,7 @@ import AboutPage from './pages/AboutPage';
 import StudentDashboard from './pages/StudentDashboard';
 import ResourcePage from './pages/ResourcePage';
 import AdminDashboard from './pages/AdminDashboard';
-import TechnicianDashboard from './pages/TechnicianDashboard';
+
 
 // Components
 import Auth from './components/auth/Auth';
@@ -47,21 +47,12 @@ export default function App() {
           <Route 
             path="/admin" 
             element={
-              <ProtectedRoute allowedRoles={['ADMIN']}>
+              <ProtectedRoute allowedRoles={['ADMIN', 'TECHNICIAN']}>
                 <AdminDashboard />
               </ProtectedRoute>
             }
           />
 
-          {/* Technician Route (Role: TECHNICIAN or ADMIN) */}
-          <Route 
-            path="/technician-dashboard" 
-            element={
-              <ProtectedRoute allowedRoles={['TECHNICIAN']}>
-                <TechnicianDashboard />
-              </ProtectedRoute>
-            }
-          />
         </Routes>
       </Router>
     </GoogleOAuthProvider>
