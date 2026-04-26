@@ -354,8 +354,8 @@ function MyBookingsSection() {
   );
 }
 
-// ─── Main Dashboard ────────────────────────────────────────────────────────────
-export default function DashboardPage() {
+// ─── Main Resource Page ────────────────────────────────────────────────────────
+export default function ResourcePage() {
   const [activeTab, setActiveTab] = useState('browse');
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
