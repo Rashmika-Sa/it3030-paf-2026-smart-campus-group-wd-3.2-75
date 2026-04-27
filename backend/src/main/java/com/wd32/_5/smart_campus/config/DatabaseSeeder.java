@@ -26,26 +26,25 @@ public class DatabaseSeeder implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) throws Exception {
-        
-        // Seed or Update Admin User
-        User admin = userRepository.findByEmail("admin@my.sliit.lk").orElse(new User());
-        admin.setName("System Admin");
-        admin.setEmail("admin@my.sliit.lk");
-        admin.setPassword(passwordEncoder.encode(adminPassword)); 
-        admin.setRole(Role.ADMIN); 
-        
-        userRepository.save(admin);
-        System.out.println("✅ Admin user seeded/updated successfully!");
+    public void run(String... args) {
+        try {
+            User admin = userRepository.findByEmail("admin@my.sliit.lk").orElse(new User());
+            admin.setName("System Admin");
+            admin.setEmail("admin@my.sliit.lk");
+            admin.setPassword(passwordEncoder.encode(adminPassword));
+            admin.setRole(Role.ADMIN);
+            userRepository.save(admin);
+            System.out.println("✅ Admin user seeded/updated successfully!");
 
-        // Seed or Update Technician User
-        User technician = userRepository.findByEmail("technician@my.sliit.lk").orElse(new User());
-        technician.setName("Lab Technician");
-        technician.setEmail("technician@my.sliit.lk");
-        technician.setPassword(passwordEncoder.encode(technicianPassword)); 
-        technician.setRole(Role.TECHNICIAN); 
-        
-        userRepository.save(technician);
-        System.out.println("✅ Technician user seeded/updated successfully!");
+            User technician = userRepository.findByEmail("technician@my.sliit.lk").orElse(new User());
+            technician.setName("Lab Technician");
+            technician.setEmail("technician@my.sliit.lk");
+            technician.setPassword(passwordEncoder.encode(technicianPassword));
+            technician.setRole(Role.TECHNICIAN);
+            userRepository.save(technician);
+            System.out.println("✅ Technician user seeded/updated successfully!");
+        } catch (Exception e) {
+            System.err.println("⚠️ Seeding skipped — MongoDB not reachable at startup: " + e.getMessage());
+        }
     }
 }

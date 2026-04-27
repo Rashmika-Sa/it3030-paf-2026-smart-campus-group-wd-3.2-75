@@ -8,6 +8,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import TechnicianDashboard from './pages/TechnicianDashboard';
 import ResourcePage from './pages/ResourcePage';
 import AdminDashboard from './pages/AdminDashboard';
+import NotificationsPage from './pages/NotificationsPage';
 
 
 // Components
@@ -60,6 +61,16 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['ADMIN', 'TECHNICIAN']}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Notifications */}
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
               </ProtectedRoute>
             }
           />

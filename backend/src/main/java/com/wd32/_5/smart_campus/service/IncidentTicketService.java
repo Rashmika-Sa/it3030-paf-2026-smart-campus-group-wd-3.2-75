@@ -36,14 +36,17 @@ public class IncidentTicketService {
 
     private final IncidentTicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Value("${file.upload-dir:uploads/tickets}")
     private String uploadDir;
 
     public IncidentTicketService(IncidentTicketRepository ticketRepository,
-                                  UserRepository userRepository) {
+                                  UserRepository userRepository,
+                                  NotificationService notificationService) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     // ── CREATE ─────────────────────────────────────────────────
@@ -63,7 +66,11 @@ public class IncidentTicketService {
         ticket.setCreatedByEmail(currentUser.getEmail());
         ticket.setCreatedAt(LocalDateTime.now());
         ticket.setUpdatedAt(LocalDateTime.now());
-        return TicketResponse.from(ticketRepository.save(ticket));
+        TicketResponse saved = TicketResponse.from(ticketRepository.save(ticket));
+        notificationService.notifyAllAdmins(
+                "New ticket submitted by " + currentUser.getName() + ": " + request.getTitle(),
+                NotificationType.TICKET_CREATED, saved.getId());
+        return saved;
     }
 
     // ── GET ALL ────────────────────────────────────────────────
@@ -128,7 +135,11 @@ public class IncidentTicketService {
         if (request.getRejectionReason() != null)
             ticket.setRejectionReason(request.getRejectionReason());
         ticket.setUpdatedAt(LocalDateTime.now());
-        return TicketResponse.from(ticketRepository.save(ticket));
+        TicketResponse saved = TicketResponse.from(ticketRepository.save(ticket));
+        notificationService.notifyUser(ticket.getCreatedById(),
+                "Your ticket \"" + ticket.getTitle() + "\" status changed to " + request.getStatus(),
+                NotificationType.TICKET_UPDATED, id);
+        return saved;
     }
 
     // ── TECHNICIAN UPDATE ──────────────────────────────────────
@@ -169,7 +180,12 @@ public class IncidentTicketService {
         update.setUpdatedAt(LocalDateTime.now());
         ticket.getTechnicianUpdates().add(update);
         ticket.setUpdatedAt(LocalDateTime.now());
-        return TicketResponse.from(ticketRepository.save(ticket));
+        TicketResponse saved = TicketResponse.from(ticketRepository.save(ticket));
+        notificationService.notifyUser(ticket.getCreatedById(),
+                "Your ticket \"" + ticket.getTitle() + "\" was updated to " + request.getStatus()
+                        + " by " + currentUser.getName(),
+                NotificationType.TICKET_UPDATED, ticketId);
+        return saved;
     }
 
     // ── MARK REVIEWED (Technician/Admin) ─────────────────────

@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { Menu, X, Lock, KeyRound, Home } from 'lucide-react';
+import { useState } from 'react';
+import { Menu, X, Lock, KeyRound, Home, Bell } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useNotifications } from '../../hooks/useNotifications';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const isLoggedIn = Boolean(localStorage.getItem('token'));
+  const { unreadCount } = useNotifications();
 
   const handleRestrictedClick = (e) => {
     e.preventDefault();
@@ -18,13 +20,12 @@ export default function Navbar() {
     navigate('/auth');
   };
 
+  const homeHref = isLoggedIn ? '/dashboard' : '/';
+
   const navLinks = [
     { name: 'About', restricted: false, href: '/about', route: true },
-    { name: 'Bookings', restricted: true, href: '/resources#booking', route: true },
-    { name: 'Resources', restricted: true, href: '/resources#resources', route: true },
-    { name: 'Tickets', restricted: true, href: '/resources#tickets', route: true },
-    { name: 'Notifications', restricted: true, href: '/resources#notifications', route: true },
-    { name: 'Facilities', restricted: true, href: '/resources#facilities', route: true },
+    { name: 'Resources', restricted: true, href: '/resources', route: true },
+    { name: 'Bookings', restricted: true, href: '/resources', route: true },
   ];
 
   return (
@@ -45,7 +46,7 @@ export default function Navbar() {
           {/* Center/Right: Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-6">
             <Link
-              to="/"
+              to={homeHref}
               aria-label="Go to home"
               title="Home"
               className="inline-flex items-center justify-center h-8 w-8 rounded-full border border-gray-600 text-gray-300 hover:text-sliit-gold hover:border-sliit-gold transition-colors"
@@ -79,6 +80,16 @@ export default function Navbar() {
             
             {/* Action Buttons & Forgot Password */}
             <div className="flex items-center gap-4 pl-4 border-l border-gray-700">
+              {isLoggedIn && (
+                <Link to="/notifications" className="relative inline-flex items-center justify-center h-8 w-8 rounded-full border border-gray-600 text-gray-300 hover:text-sliit-gold hover:border-sliit-gold transition-colors" title="Notifications">
+                  <Bell className="h-4 w-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center rounded-full bg-sliit-gold text-[#222222] text-[9px] font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
               <a href="#forgot-password" className="flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-sliit-gold transition-colors underline underline-offset-2">
                 <KeyRound className="h-3 w-3" />
                 Forgot Password?
@@ -120,7 +131,7 @@ export default function Navbar() {
       {isMenuOpen && (
         <div className="lg:hidden bg-[#222222] border-b border-sliit-gold/30 absolute w-full shadow-2xl">
           <div className="px-4 pt-2 pb-6 space-y-1">
-            <Link to="/" className="flex items-center gap-2 px-3 py-3 text-base font-medium text-gray-300 hover:bg-[#333333] hover:text-sliit-gold rounded-lg transition-colors">
+            <Link to={homeHref} className="flex items-center gap-2 px-3 py-3 text-base font-medium text-gray-300 hover:bg-[#333333] hover:text-sliit-gold rounded-lg transition-colors" onClick={() => setIsMenuOpen(false)}>
               <Home className="h-4 w-4" />
               Home
             </Link>
@@ -155,6 +166,23 @@ export default function Navbar() {
               )
             ))}
             <div className="flex flex-col gap-3 mt-6 pt-4 border-t border-gray-800">
+              {isLoggedIn && (
+                <Link
+                  to="/notifications"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center justify-between px-3 py-3 text-base font-medium text-gray-300 hover:bg-[#333333] hover:text-sliit-gold rounded-lg transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Bell className="h-4 w-4" />
+                    Notifications
+                  </span>
+                  {unreadCount > 0 && (
+                    <span className="h-5 px-1.5 flex items-center justify-center rounded-full bg-sliit-gold text-[#222222] text-xs font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
               <a href="#forgot-password" className="text-sm font-medium text-gray-400 hover:text-sliit-gold transition-colors text-center underline mb-2">
                 Forgotten your password?
               </a>

@@ -6,7 +6,7 @@ export default function AttachmentUpload({ ticket, currentUser, onUpdate }) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(null);
   const fileRef = useRef();
-  const canUpload = currentUser?.role === 'STUDENT' && ticket.createdById === currentUser?.id;
+  const canUpload = currentUser?.role === 'USER' && ticket.createdBy?.id === currentUser?.id;
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];

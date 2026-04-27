@@ -3,6 +3,7 @@ package com.wd32._5.smart_campus.service;
 import com.wd32._5.smart_campus.dto.BookingRequest;
 import com.wd32._5.smart_campus.entity.Booking;
 import com.wd32._5.smart_campus.entity.BookingStatus;
+import com.wd32._5.smart_campus.entity.NotificationType;
 import com.wd32._5.smart_campus.entity.Resource;
 import com.wd32._5.smart_campus.entity.ResourceStatus;
 import com.wd32._5.smart_campus.entity.User;
@@ -22,13 +23,16 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
     private final WhatsAppNotificationService whatsAppNotificationService;
+    private final NotificationService notificationService;
 
     public BookingService(BookingRepository bookingRepository,
                           ResourceRepository resourceRepository,
-                          WhatsAppNotificationService whatsAppNotificationService) {
+                          WhatsAppNotificationService whatsAppNotificationService,
+                          NotificationService notificationService) {
         this.bookingRepository = bookingRepository;
         this.resourceRepository = resourceRepository;
         this.whatsAppNotificationService = whatsAppNotificationService;
+        this.notificationService = notificationService;
     }
 
     public Booking create(BookingRequest req, User currentUser) {
@@ -64,6 +68,10 @@ public class BookingService {
 
         Booking saved = bookingRepository.save(booking);
         whatsAppNotificationService.sendBookingCreated(resource.getName(), req.getDate(), req.getTimeSlot());
+        notificationService.notifyAllAdmins(
+                "New booking request by " + booking.getUserName() + " for " + resource.getName()
+                        + " on " + req.getDate() + " at " + req.getTimeSlot(),
+                NotificationType.BOOKING_CREATED, saved.getId());
         return saved;
     }
 
@@ -84,7 +92,12 @@ public class BookingService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PENDING bookings can be approved");
         }
         booking.setStatus(BookingStatus.APPROVED);
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        notificationService.notifyUser(booking.getUserId(),
+                "Your booking for " + booking.getResourceName() + " on " + booking.getDate()
+                        + " at " + booking.getTimeSlot() + " has been approved.",
+                NotificationType.BOOKING_APPROVED, id);
+        return saved;
     }
 
     public Booking reject(String id, String reason) {
@@ -94,7 +107,13 @@ public class BookingService {
         }
         booking.setStatus(BookingStatus.REJECTED);
         booking.setAdminNote(reason);
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        notificationService.notifyUser(booking.getUserId(),
+                "Your booking for " + booking.getResourceName() + " on " + booking.getDate()
+                        + " at " + booking.getTimeSlot() + " has been rejected."
+                        + (reason != null && !reason.isBlank() ? " Reason: " + reason : ""),
+                NotificationType.BOOKING_REJECTED, id);
+        return saved;
     }
 
     public Booking cancel(String id, User currentUser) {
