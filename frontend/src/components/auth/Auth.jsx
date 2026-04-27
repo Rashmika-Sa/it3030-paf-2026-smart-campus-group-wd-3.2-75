@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, Lock, User, Hash, GraduationCap, ArrowLeft, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -18,7 +18,7 @@ export default function Auth() {
       if (user?.role === 'ADMIN') {
         navigate('/admin');
       } else if (user?.role === 'TECHNICIAN') {
-        navigate('/admin');
+        navigate('/technician-dashboard');
       } else {
         navigate('/dashboard'); 
       }
