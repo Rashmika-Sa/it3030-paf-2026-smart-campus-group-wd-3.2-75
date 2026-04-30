@@ -9,32 +9,19 @@ export default function Navbar() {
   const navigate = useNavigate();
   const { unreadCount } = useNotifications();
 
-  // Validate token on component mount and when it changes
+  // Check if user is logged in (token exists in localStorage)
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      setIsLoggedIn(false);
-      return;
-    }
+    setIsLoggedIn(Boolean(token));
 
-    // Validate token with backend
-    fetch('http://localhost:8081/api/auth/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (res.ok) {
-          setIsLoggedIn(true);
-        } else {
-          // Token is invalid, remove it
-          localStorage.removeItem('token');
-          setIsLoggedIn(false);
-        }
-      })
-      .catch(() => {
-        // Backend is down or error, remove token to be safe
-        localStorage.removeItem('token');
-        setIsLoggedIn(false);
-      });
+    // Listen for storage changes (e.g., from other tabs or logout)
+    const handleStorageChange = () => {
+      const updatedToken = localStorage.getItem('token');
+      setIsLoggedIn(Boolean(updatedToken));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleRestrictedClick = (e) => {
