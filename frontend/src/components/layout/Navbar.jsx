@@ -24,6 +24,20 @@ export default function Navbar() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Update login state when token is set/removed via auth flow
+  useEffect(() => {
+    const handleTokenChange = (e) => {
+      if (e.detail?.token) {
+        setIsLoggedIn(true);
+      } else if (e.detail?.logout) {
+        setIsLoggedIn(false);
+      }
+    };
+    
+    window.addEventListener('tokenChanged', handleTokenChange);
+    return () => window.removeEventListener('tokenChanged', handleTokenChange);
+  }, []);
+
   const handleRestrictedClick = (e) => {
     e.preventDefault();
     alert("Please Login or Register to access the Student Portal.");
