@@ -105,36 +105,10 @@ export default function StudentDashboard() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    // Validate required fields (skip image upload validation)
-    const errors = [];
+    // Simple validation: only require title (other fields optional)
     const title = (form.title || '').trim();
-    const description = (form.description || '').trim();
-    const location = (form.location || '').trim();
-
-    if (!title) errors.push('Title is required.');
-    if (title && title.length < 5) errors.push('Title must be at least 5 characters.');
-    if (!description) errors.push('Description is required.');
-    if (description && description.length < 10) errors.push('Description must be at least 10 characters.');
-    if (!location) errors.push('Location is required.');
-
-    const validateEmail = (email) => {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    };
-
-    const validatePhone = (phone) => {
-      return /^\+?[0-9\s\-()]{7,20}$/.test(phone);
-    };
-
-    if (form.preferredContactEmail && form.preferredContactEmail.trim() && !validateEmail(form.preferredContactEmail.trim())) {
-      errors.push('Preferred contact email is invalid.');
-    }
-
-    if (form.preferredContactPhone && form.preferredContactPhone.trim() && !validatePhone(form.preferredContactPhone.trim())) {
-      errors.push('Preferred contact phone is invalid.');
-    }
-
-    if (errors.length > 0) {
-      const message = errors.join(' ');
+    if (!title) {
+      const message = 'Title is required.';
       setCreateError(message);
       showToast(message, 'error');
       return;
@@ -157,7 +131,8 @@ export default function StudentDashboard() {
       setCreateScreenshot(null);
       if (screenshotInputRef.current) screenshotInputRef.current.value = '';
     } catch (e) {
-      const msg = e.message || 'Failed to create ticket. Please try again.';
+      console.error('Ticket creation error:', e);
+      const msg = 'Failed to create ticket. Please ensure required fields are filled.';
       setCreateError(msg);
       showToast(msg, 'error');
     } finally {
