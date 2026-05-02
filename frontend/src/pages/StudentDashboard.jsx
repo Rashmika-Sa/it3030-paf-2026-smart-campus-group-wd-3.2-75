@@ -1,17 +1,19 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ClipboardList, Plus, Clock, CheckCircle,
   AlertCircle, X, Loader2, MapPin, MessageSquare,
   Paperclip, ChevronRight, Search, Calendar, Zap,
-  Wrench, User, LogOut, Settings, Mail, Phone,
-  BookOpen, Beaker, Monitor, Grid3x3, Sparkles,
-  TrendingUp, Users, Bell, ArrowRight
+  Wrench, User, Settings, Mail,
+  BookOpen, Grid3x3, Users, Bell, ArrowRight,
+  Building2, FlaskConical, MonitorSmartphone, Video,
+  XCircle, Ban
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import { useAuth } from '../hooks/useAuth';
 import { ticketApi } from '../hooks/useTickets';
 import TicketDetail from '../components/technician/TicketDetail';
+import { useNavigate } from 'react-router-dom';
 
 const CATEGORIES = ['ELECTRICAL','PLUMBING','HVAC','EQUIPMENT','NETWORK','FURNITURE','SECURITY','CLEANING','OTHER'];
 const PRIORITIES = ['LOW','MEDIUM','HIGH','CRITICAL'];
@@ -49,12 +51,77 @@ const priorityBar = {
 const VIEW_TABS = ['MY_INCIDENTS', 'COMPLETE'];
 const FILTERS = ['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'];
 
+const BACKEND = 'http://localhost:8081';
+
+const getToken = () => localStorage.getItem('token');
+
+const RESOURCE_TYPES = {
+  LECTURE_HALL: { label: 'Lecture Hall', icon: Building2, color: 'from-blue-500 to-blue-700' },
+  LAB: { label: 'Lab', icon: FlaskConical, color: 'from-purple-500 to-purple-700' },
+  MEETING_ROOM: { label: 'Meeting Room', icon: MonitorSmartphone, color: 'from-emerald-500 to-emerald-700' },
+  EQUIPMENT: { label: 'Equipment', icon: Video, color: 'from-orange-500 to-orange-700' },
+};
+
+const BOOKING_STATUS_STYLE = {
+  PENDING: 'bg-yellow-100 text-yellow-700',
+  APPROVED: 'bg-emerald-100 text-emerald-700',
+  REJECTED: 'bg-red-100 text-red-700',
+  CANCELLED: 'bg-gray-100 text-gray-500',
+};
+
+const BOOKING_STATUS_ICON = {
+  PENDING: <Clock className="w-3 h-3" />,
+  APPROVED: <CheckCircle className="w-3 h-3" />,
+  REJECTED: <XCircle className="w-3 h-3" />,
+  CANCELLED: <Ban className="w-3 h-3" />,
+};
+
+function isResourceAvailableNow(resource) {
+  if (resource.status !== 'ACTIVE') return false;
+  const windows = resource.availabilityWindows || [];
+  if (windows.length === 0) return true;
+
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const currentMin = now.getHours() * 60 + now.getMinutes();
+
+  return windows.some((windowValue) => {
+    const spaceIdx = windowValue.indexOf(' ');
+    if (spaceIdx === -1) return true;
+    const date = windowValue.slice(0, spaceIdx);
+    if (date !== todayStr) return false;
+
+    const timePart = windowValue.slice(spaceIdx + 1);
+    const dashIdx = timePart.indexOf('–');
+    if (dashIdx === -1) return true;
+
+    const [startHour, startMinute = 0] = timePart.slice(0, dashIdx).split(':').map(Number);
+    const [endHour, endMinute = 0] = timePart.slice(dashIdx + 1).split(':').map(Number);
+
+    return currentMin >= startHour * 60 + startMinute && currentMin <= endHour * 60 + endMinute;
+  });
+}
+
+function formatBookingDate(dateValue) {
+  if (!dateValue) return 'TBD';
+  const parsed = new Date(dateValue);
+  if (Number.isNaN(parsed.getTime())) return dateValue;
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [resources, setResources] = useState([]);
+  const [resourcesLoading, setResourcesLoading] = useState(true);
+  const [resourcesError, setResourcesError] = useState('');
+  const [bookings, setBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
+  const [bookingsError, setBookingsError] = useState('');
   const [activeTab, setActiveTab] = useState('MY_INCIDENTS');
   const [filter, setFilter] = useState('ALL');
   const [search, setSearch] = useState('');
@@ -85,9 +152,46 @@ export default function StudentDashboard() {
     }
   };
 
+  const fetchResources = useCallback(async () => {
+    setResourcesLoading(true);
+    setResourcesError('');
+    try {
+      const res = await fetch(`${BACKEND}/api/resources`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error('Failed to load resources.');
+      const data = await res.json();
+      setResources(data);
+    } catch {
+      setResourcesError('Failed to load available resources.');
+      setResources([]);
+    } finally {
+      setResourcesLoading(false);
+    }
+  }, []);
+
+  const fetchBookings = useCallback(async () => {
+    setBookingsLoading(true);
+    setBookingsError('');
+    try {
+      const res = await fetch(`${BACKEND}/api/bookings/my`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error('Failed to load bookings.');
+      const data = await res.json();
+      setBookings(data);
+    } catch {
+      setBookingsError('Failed to load your bookings.');
+      setBookings([]);
+    } finally {
+      setBookingsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTickets();
-    // Only refresh if user manually requests it via a button - removed auto-refresh
+    fetchResources();
+    fetchBookings();
   }, []);
 
   // Keep tabs predictable by clearing previous tab filters/search.
@@ -168,31 +272,22 @@ export default function StudentDashboard() {
 
   const firstName = user?.name?.split(' ')[0] || 'Student';
 
-  // Mock data for resources
-  const mockResources = [
-    { id: 1, name: 'Study Room A', type: 'Study Room', available: true, icon: BookOpen, color: 'from-blue-400 to-blue-600' },
-    { id: 2, name: 'Lab 1 - Chemistry', type: 'Lab', available: true, icon: Beaker, color: 'from-purple-400 to-purple-600' },
-    { id: 3, name: 'Computer Lab', type: 'Equipment', available: false, icon: Monitor, color: 'from-cyan-400 to-blue-600' },
-  ];
-
-  // Mock notifications
-  const mockNotifications = [
-    { id: 1, title: 'Lab Maintenance', desc: 'Chemistry lab will be closed tomorrow', time: '2h ago' },
-    { id: 2, title: 'Booking Confirmed', desc: 'Your study room booking for tomorrow is confirmed', time: '4h ago' },
-    { id: 3, title: 'Equipment Update', desc: 'New projectors installed in Lecture Hall A', time: '1d ago' },
-  ];
+  const activeResources = resources.filter((resource) => resource.status === 'ACTIVE');
+  const availableResources = activeResources.filter(isResourceAvailableNow);
+  const bookingStats = {
+    pending: bookings.filter((booking) => booking.status === 'PENDING').length,
+    approved: bookings.filter((booking) => booking.status === 'APPROVED').length,
+  };
 
   return (
     <div className="min-h-screen bg-white font-poppins flex flex-col">
       <Navbar />
 
-      <main className="flex-grow pt-20 pb-12 px-4 sm:px-6 lg:px-8">
+      <main className="flex-grow pt-24 md:pt-28 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto space-y-8">
 
-          {/* ═══════════════════════════════════════════════════════════════════════ */}
-          {/* 1. HEADER / WELCOME AREA */}
-          {/* ═══════════════════════════════════════════════════════════════════════ */}
-          <div className="relative overflow-hidden">
+         
+          <div className="relative overflow-hidden -mt-2 sm:-mt-4">
             {/* Subtle background gradient effect */}
             <div className="absolute -top-40 -right-40 w-80 h-80 bg-sliit-gold/5 rounded-full blur-3xl"></div>
             <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-sliit-navy/3 rounded-full blur-3xl"></div>
@@ -224,9 +319,7 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* ═══════════════════════════════════════════════════════════════════════ */}
-          {/* 2. SMART ALERT / NOTIFICATION STRIP */}
-          {/* ═══════════════════════════════════════════════════════════════════════ */}
+          
           <div className="bg-gradient-to-r from-sliit-navy/10 to-sliit-gold/10 border border-sliit-gold/30 rounded-2xl p-5 flex items-start gap-4 backdrop-blur-sm">
             <div className="w-12 h-12 rounded-xl bg-sliit-gold/20 flex items-center justify-center shrink-0">
               <AlertCircle className="w-6 h-6 text-sliit-gold animate-pulse" />
@@ -237,9 +330,7 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* ═══════════════════════════════════════════════════════════════════════ */}
-          {/* 3. QUICK STATS GRID */}
-          {/* ═══════════════════════════════════════════════════════════════════════ */}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             {/* Total Tickets */}
             <div className="group relative bg-white border border-gray-200 rounded-2xl p-6 hover:border-sliit-gold/50 hover:shadow-lg transition-all duration-300">
@@ -302,9 +393,9 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* ═══════════════════════════════════════════════════════════════════════ */}
+          
           {/* 4. RESOURCE BOOKING SECTION */}
-          {/* ═══════════════════════════════════════════════════════════════════════ */}
+      
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
@@ -312,58 +403,97 @@ export default function StudentDashboard() {
                   <Grid3x3 className="w-6 h-6 text-sliit-gold" />
                   Available Resources
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">Book your campus facilities instantly</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {resourcesLoading
+                    ? 'Loading available resources...'
+                    : `${availableResources.length} resource${availableResources.length !== 1 ? 's' : ''} currently available to book`}
+                </p>
               </div>
-              <button className="hidden md:flex items-center gap-2 text-sliit-gold font-bold hover:gap-3 transition-all">
+              <button onClick={() => navigate('/resources')} className="hidden md:flex items-center gap-2 text-sliit-gold font-bold hover:gap-3 transition-all">
                 View All <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {mockResources.map((resource) => {
-                const IconComponent = resource.icon;
+              {resourcesLoading && Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="rounded-2xl border border-gray-200 bg-white p-6 animate-pulse">
+                  <div className="h-12 w-12 rounded-xl bg-gray-200 mb-4" />
+                  <div className="h-4 w-28 bg-gray-200 rounded mb-2" />
+                  <div className="h-3 w-full bg-gray-100 rounded mb-2" />
+                  <div className="h-3 w-5/6 bg-gray-100 rounded mb-4" />
+                  <div className="h-10 bg-gray-100 rounded-xl" />
+                </div>
+              ))}
+
+              {!resourcesLoading && resourcesError && (
+                <div className="md:col-span-3 bg-red-50 border border-red-200 rounded-2xl p-5 text-sm text-red-700 flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <span className="flex-1">{resourcesError}</span>
+                  <button onClick={fetchResources} className="font-bold hover:text-red-900">Retry</button>
+                </div>
+              )}
+
+              {!resourcesLoading && !resourcesError && resources.length === 0 && (
+                <div className="md:col-span-3 bg-white border border-dashed border-gray-300 rounded-2xl p-10 text-center">
+                  <Grid3x3 className="w-14 h-14 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-black text-sliit-deep mb-2">No resources available</h3>
+                  <p className="text-sm text-gray-600">Once campus resources are added, they will appear here automatically.</p>
+                </div>
+              )}
+
+              {!resourcesLoading && !resourcesError && resources.slice(0, 3).map((resource) => {
+                const resourceMeta = RESOURCE_TYPES[resource.type] || {
+                  label: resource.type || 'Resource',
+                  icon: Grid3x3,
+                  color: 'from-gray-400 to-gray-600',
+                };
+                const IconComponent = resourceMeta.icon;
+                const currentlyAvailable = isResourceAvailableNow(resource);
+
                 return (
                   <div
                     key={resource.id}
-                    className={`group relative overflow-hidden rounded-2xl border border-gray-200 hover:border-sliit-gold/50 transition-all duration-300 hover:shadow-lg cursor-pointer ${
-                      resource.available ? 'bg-white' : 'bg-gray-50'
-                    }`}
+                    className={`group relative overflow-hidden rounded-2xl border border-gray-200 hover:border-sliit-gold/50 transition-all duration-300 hover:shadow-lg ${resource.status === 'ACTIVE' ? 'bg-white' : 'bg-gray-50'}`}
                   >
-                    {/* Gradient overlay on hover */}
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-br ${resource.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}
-                    ></div>
+                    <div className={`absolute inset-0 bg-gradient-to-br ${resourceMeta.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
 
                     <div className="relative z-10 p-6 space-y-4">
-                      <div className="flex items-start justify-between">
-                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${resource.color} flex items-center justify-center text-white transition-transform duration-300 group-hover:scale-110`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${resourceMeta.color} flex items-center justify-center text-white transition-transform duration-300 group-hover:scale-110`}>
                           <IconComponent className="w-6 h-6" />
                         </div>
-                        <div
-                          className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            resource.available
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-200 text-gray-600'
-                          }`}
-                        >
-                          {resource.available ? '✓ Available' : '✗ Booked'}
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold ${currentlyAvailable ? 'bg-green-100 text-green-700' : resource.status === 'ACTIVE' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-200 text-gray-600'}`}>
+                          {currentlyAvailable ? '✓ Available now' : resource.status === 'ACTIVE' ? '⌛ Busy' : '✗ Out of service'}
                         </div>
                       </div>
 
                       <div>
                         <h3 className="font-bold text-sliit-deep mb-1">{resource.name}</h3>
-                        <p className="text-sm text-gray-600">{resource.type}</p>
+                        <p className="text-sm text-gray-600">{resourceMeta.label}</p>
+                      </div>
+
+                      <div className="space-y-2 text-xs text-gray-600">
+                        {resource.location && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 shrink-0" />
+                            <span className="truncate">{resource.location}</span>
+                          </div>
+                        )}
+                        {resource.capacity ? (
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 shrink-0" />
+                            <span>Capacity: {resource.capacity}</span>
+                          </div>
+                        ) : null}
+                        {resource.description && <p className="text-sm text-gray-500 line-clamp-2">{resource.description}</p>}
                       </div>
 
                       <button
-                        className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all duration-300 ${
-                          resource.available
-                            ? 'bg-sliit-gold/20 text-sliit-gold hover:bg-sliit-gold hover:text-sliit-deep'
-                            : 'bg-gray-200 text-gray-600 cursor-not-allowed'
-                        }`}
-                        disabled={!resource.available}
+                        onClick={() => navigate('/resources')}
+                        className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all duration-300 ${resource.status === 'ACTIVE' ? 'bg-sliit-gold/20 text-sliit-gold hover:bg-sliit-gold hover:text-sliit-deep' : 'bg-gray-200 text-gray-600 cursor-not-allowed'}`}
+                        disabled={resource.status !== 'ACTIVE'}
                       >
-                        {resource.available ? 'Book Now' : 'Not Available'}
+                        {resource.status === 'ACTIVE' ? 'Book from Resources Page' : 'Not Available'}
                       </button>
                     </div>
                   </div>
@@ -372,9 +502,9 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* ═══════════════════════════════════════════════════════════════════════ */}
+          
           {/* 5. NOTIFICATIONS PANEL */}
-          {/* ═══════════════════════════════════════════════════════════════════════ */}
+         
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">
               <div>
@@ -552,36 +682,95 @@ export default function StudentDashboard() {
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════════ */}
-            {/* NOTIFICATIONS PANEL (RIGHT SIDEBAR) */}
+            {/* BOOKINGS PANEL (RIGHT SIDEBAR) */}
             {/* ═══════════════════════════════════════════════════════════════════════ */}
             <div className="space-y-4">
               <div>
                 <h2 className="text-2xl font-black text-sliit-deep flex items-center gap-3">
-                  <Bell className="w-6 h-6 text-sliit-gold" />
-                  Notifications
+                  <BookOpen className="w-6 h-6 text-sliit-gold" />
+                  My Bookings
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">Recent updates</p>
+                <p className="text-sm text-gray-600 mt-1">Your latest booking requests and approvals</p>
               </div>
 
-              <div className="space-y-3">
-                {mockNotifications.map((notif) => (
-                  <div key={notif.id} className="group bg-white border border-gray-200 rounded-xl p-4 hover:border-sliit-gold/50 hover:shadow-md transition-all duration-300 cursor-pointer">
-                    <div className="flex gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-sliit-gold/20 flex items-center justify-center shrink-0 group-hover:bg-sliit-gold/30 transition-colors">
-                        <Sparkles className="w-4 h-4 text-sliit-gold" />
+              {bookingsLoading && (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="bg-white border border-gray-200 rounded-xl p-4 animate-pulse">
+                      <div className="h-4 w-2/3 bg-gray-200 rounded mb-3" />
+                      <div className="h-3 w-1/2 bg-gray-100 rounded mb-2" />
+                      <div className="h-3 w-3/4 bg-gray-100 rounded" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!bookingsLoading && bookingsError && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700 flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <span className="flex-1">{bookingsError}</span>
+                  <button onClick={fetchBookings} className="font-bold hover:text-red-900">Retry</button>
+                </div>
+              )}
+
+              {!bookingsLoading && !bookingsError && bookings.length === 0 && (
+                <div className="bg-white border border-dashed border-gray-300 rounded-xl p-6 text-center">
+                  <BookOpen className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                  <h4 className="font-bold text-sliit-deep mb-1">No bookings yet</h4>
+                  <p className="text-sm text-gray-600 mb-4">Browse resources to create your first booking.</p>
+                  <button onClick={() => navigate('/resources')} className="w-full py-2.5 rounded-lg bg-sliit-gold text-sliit-deep font-bold text-sm hover:bg-yellow-500 transition-colors">
+                    Browse Resources
+                  </button>
+                </div>
+              )}
+
+              {!bookingsLoading && !bookingsError && bookings.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-gray-500">
+                    <Calendar className="w-4 h-4" />
+                    {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {bookings.slice(0, 5).map((booking) => (
+                      <div key={booking.id} className="group bg-white border border-gray-200 rounded-xl p-4 hover:border-sliit-gold/50 hover:shadow-md transition-all duration-300">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-sm text-sliit-deep truncate">{booking.resourceName}</h4>
+                            <p className="text-xs text-gray-600 mt-1">{formatBookingDate(booking.date)} · {booking.timeSlot}</p>
+                          </div>
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${BOOKING_STATUS_STYLE[booking.status] || 'bg-gray-100 text-gray-500'}`}>
+                            {BOOKING_STATUS_ICON[booking.status]}
+                            {booking.status}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 space-y-2 text-xs text-gray-600">
+                          {booking.purpose && <p className="line-clamp-2">{booking.purpose}</p>}
+                          <div className="flex flex-wrap gap-3">
+                            <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />{booking.attendees || 0} attendees</span>
+                            {booking.status === 'REJECTED' && booking.adminNote && <span className="text-red-600 line-clamp-1">Reason: {booking.adminNote}</span>}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-sm text-sliit-deep mb-0.5">{notif.title}</h4>
-                        <p className="text-xs text-gray-600 line-clamp-2">{notif.desc}</p>
-                        <p className="text-xs text-gray-400 mt-2">{notif.time}</p>
-                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-sliit-deep/5 rounded-xl p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">Pending</p>
+                      <p className="text-2xl font-black text-sliit-deep mt-1">{bookingStats.pending}</p>
+                    </div>
+                    <div className="bg-green-50 rounded-xl p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500">Approved</p>
+                      <p className="text-2xl font-black text-green-700 mt-1">{bookingStats.approved}</p>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
 
-              <button className="w-full py-2.5 text-center text-sm font-bold text-sliit-gold hover:text-sliit-deep transition-colors">
-                View All Notifications →
+              <button onClick={() => navigate('/resources')} className="w-full py-2.5 text-center text-sm font-bold text-sliit-gold hover:text-sliit-deep transition-colors">
+                View All Bookings →
               </button>
             </div>
           </div>
@@ -632,7 +821,7 @@ export default function StudentDashboard() {
                   <p className="text-sm font-bold text-gray-200">Support Access</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
-                  <div className="text-4xl font-black text-sliit-gold mb-2">{mockResources.length}</div>
+                  <div className="text-4xl font-black text-sliit-gold mb-2">{availableResources.length}</div>
                   <p className="text-sm font-bold text-gray-200">Facilities Available</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
