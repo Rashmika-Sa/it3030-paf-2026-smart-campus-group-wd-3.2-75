@@ -113,6 +113,13 @@ export default function StudentDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg, type = 'error') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -202,8 +209,38 @@ export default function StudentDashboard() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.description.trim() || !form.location.trim()) {
-      setCreateError('Title, description and location are required.');
+    // Validate required fields (skip image upload validation)
+    const errors = [];
+    const title = (form.title || '').trim();
+    const description = (form.description || '').trim();
+    const location = (form.location || '').trim();
+
+    if (!title) errors.push('Title is required.');
+    if (title && title.length < 5) errors.push('Title must be at least 5 characters.');
+    if (!description) errors.push('Description is required.');
+    if (description && description.length < 10) errors.push('Description must be at least 10 characters.');
+    if (!location) errors.push('Location is required.');
+
+    const validateEmail = (email) => {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    };
+
+    const validatePhone = (phone) => {
+      return /^\+?[0-9\s\-()]{7,20}$/.test(phone);
+    };
+
+    if (form.preferredContactEmail && form.preferredContactEmail.trim() && !validateEmail(form.preferredContactEmail.trim())) {
+      errors.push('Preferred contact email is invalid.');
+    }
+
+    if (form.preferredContactPhone && form.preferredContactPhone.trim() && !validatePhone(form.preferredContactPhone.trim())) {
+      errors.push('Preferred contact phone is invalid.');
+    }
+
+    if (errors.length > 0) {
+      const message = errors.join(' ');
+      setCreateError(message);
+      showToast(message, 'error');
       return;
     }
     setCreating(true);
@@ -224,7 +261,9 @@ export default function StudentDashboard() {
       setCreateScreenshot(null);
       if (screenshotInputRef.current) screenshotInputRef.current.value = '';
     } catch (e) {
-      setCreateError(e.message || 'Failed to create ticket. Please try again.');
+      const msg = e.message || 'Failed to create ticket. Please try again.';
+      setCreateError(msg);
+      showToast(msg, 'error');
     } finally {
       setCreating(false);
     }
@@ -1084,6 +1123,13 @@ export default function StudentDashboard() {
           onClose={() => setSelectedTicket(null)}
           onUpdate={handleTicketUpdate}
         />
+      )}
+      {toast && (
+        <div className={`fixed top-6 right-6 z-[9999] pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold
+          ${toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
+          {toast.type === 'error' ? <AlertCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+          {toast.msg}
+        </div>
       )}
     </div>
   );
